@@ -1,3 +1,11 @@
+/**
+ * The sign-in page.
+ *
+ * In production nobody reaches this: Cloudflare Access asks for the email,
+ * mails a one-time code, and only then does the request arrive here already
+ * identified. The password form is the local-development path, and is off
+ * unless ALLOW_PASSWORD_LOGIN is set.
+ */
 import { useState } from 'react'
 import { Navigate, useNavigate } from 'react-router-dom'
 import { useAuth } from '../state/auth'

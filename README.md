@@ -8,24 +8,40 @@ the database, and the built interface served by the same Worker.
 
 No server to patch, no Docker, no VPS, and nothing to pay at your size.
 
-**To put it live: [LAUNCH.md](LAUNCH.md).** One command, then one step in the
-Cloudflare dashboard.
+It is already live at **https://task.healthwebgroup.com**, and deploys itself:
+change something, double-click **`PUSH TO GITHUB.bat`**, and GitHub runs the
+typecheck, the 112 tests, the database migrations and the deploy. About two
+minutes. [DEPLOY-AUTOMATICALLY.md](DEPLOY-AUTOMATICALLY.md) has the detail,
+including how to roll back.
 
 ---
 
 ## What is here
 
 ```
-healthwebgroup-workos/
-├── api/                  Cloudflare Worker - the API and the static site
-│   ├── src/              TypeScript: routes, permissions, validation
-│   ├── migrations/       D1 (SQLite) schema and your starter data
-│   └── wrangler.toml     bindings, routes, variables
-│   └── seed/             optional demo data — NOT run on deploy
-├── web/                  React 18 + TypeScript interface (Vite)
-├── launch.mjs            one command that puts it live on Cloudflare
-├── LAUNCH.md             what that command does, and the one manual step
-└── DEPLOY.md             the same deployment done by hand
+work-os-cloudflare/
+├── api/                      Cloudflare Worker — the API and the static site
+│   ├── src/
+│   │   ├── index.ts          every route, mounted
+│   │   ├── auth.ts           who the caller is: Access JWT, then the user row
+│   │   ├── access.ts         what they may do — the single decision point
+│   │   ├── validate.ts       every request body is checked here first
+│   │   ├── routes/           one file per area (boards, items, people, …)
+│   │   └── *.test.ts         112 tests, run before every deploy
+│   ├── migrations/           D1 (SQLite) schema, applied in order
+│   ├── seed/                 demo data — NOT run on deploy
+│   └── wrangler.toml         bindings, routes, variables
+├── web/                      React 18 + TypeScript interface (Vite)
+│   └── src/
+│       ├── pages/            one file per screen
+│       ├── components/       the parts screens are built from
+│       ├── state/            auth, clients, the running timer
+│       ├── lib/types.ts      the shapes the API sends
+│       ├── styles.css        an import list — nothing else
+│       └── styles/           21 named stylesheets, in cascade order
+├── .github/workflows/        the deploy that runs on every push
+├── PUSH TO GITHUB.bat        how you deploy
+└── push.mjs                  what it runs
 ```
 
 One Worker serves both: static assets are matched first, `/api/*` is handed to

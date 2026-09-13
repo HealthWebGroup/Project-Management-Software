@@ -1,0 +1,603 @@
+/* =====================================================================
+   Harbour Health Work OS — interface styles
+
+   The look is drawn from what this company actually does: plotting work
+   across time for clients on the Irish coast. Nautical chart drafting is
+   the reference — prussian depth-ink, brass instruments, contour washes,
+   channel-marker colour. Applied as atmosphere and palette, never as
+   costume: this is a tool people sit in front of all day, so the chrome
+   carries the character and the data stays plain and legible.
+
+   Tokens first; every component reads them, so all three theme states
+   (light, dark, and the un-stamped system default) resolve as a set.
+   ===================================================================== */
+
+:root {
+  color-scheme: light;
+
+  /* ---------------------------------------------------------------------
+     Palette
+
+     Five of these are the client's own, chosen in realtimecolors:
+
+       text        #050315      background  #FBFBFE
+       primary     #2F27CE      secondary   #DEDCFF
+       accent      #433BFF
+
+     Everything else is derived from them. Two notes on why the derived
+     values are not simply the given two neutrals:
+
+     - #FBFBFE is a hair off white, so using it as the page ground with
+       white cards on top leaves no separation at all — which is the flat
+       look we were asked to fix. It stays as the outermost ground, and a
+       deeper violet-tinted tint sits under the work surfaces.
+     - Greys are biased toward the indigo rather than neutral, so nothing
+       reads as a different temperature from the accent.
+
+     Every value here was checked: body text lands at 19.7:1, primary on
+     white at 9.1:1, primary on the secondary tint at 6.9:1.
+     --------------------------------------------------------------------- */
+  --ground: #FBFBFE;
+  --ground-deep: #EDECF8;
+  --surface: #FFFFFF;
+  --surface-2: #F5F4FC;
+  --surface-3: #E9E8F6;
+  --line: #DAD8EC;
+  --line-soft: #EDEBF8;
+
+  --ink: #050315;
+  --ink-soft: #3A3550;
+  --muted: #615D7A;
+
+  /* Primary carries identity and every committed action; accent is the
+     brighter sibling used for focus, live state and the moving highlight.
+     Keeping them distinct is what stops the interface strobing. */
+  --accent: #2F27CE;
+  --accent-hot: #433BFF;
+  --accent-ink: #241DA6;
+  --accent-soft: #DEDCFF;
+  --brass: #A8570C;
+  --brass-soft: #F9E7D4;
+
+  /* ---- state ----------------------------------------------------------
+     Semantic colours, separate from the accent and always shipped with a
+     text label. Nudged cooler to sit with indigo without becoming it —
+     a status that reads as the brand colour stops reading as a status. */
+  --c-grey: #5F5B75;   --c-grey-bg: #E9E8F1;
+  --c-blue: #1F4FA8;   --c-blue-bg: #DDE6F8;
+  --c-green: #21694A;  --c-green-bg: #D8EDE3;
+  --c-amber: #8A5405;  --c-amber-bg: #FAEAD0;
+  --c-red: #A62A3E;    --c-red-bg: #F9DCE1;
+  --c-violet: #5B32A8; --c-violet-bg: #E6DCFA;
+  --c-teal: #0E6472;   --c-teal-bg: #D6EBEE;
+
+  /* Categorical series colours for charts. NOT the status colours: status
+     is state and always carries a label, while these carry identity where
+     the mark may be all you have. Validated for lightness band, chroma
+     floor, colour-blind separation and contrast in both modes. Do not
+     hand-edit one without re-running that check. */
+  --cat-1: #0072B2;
+  --cat-2: #C25400;
+  --cat-3: #00845F;
+  --cat-4: #B27A00;
+  --cat-5: #6A3D9A;
+  --cat-6: #B4568C;
+
+  /* ---- form ----------------------------------------------------------- */
+  --radius: 6px;
+  --radius-lg: 10px;
+  --radius-sm: 4px;
+  --sidebar-w: 252px;
+
+  /* ---- density --------------------------------------------------------
+     One scale drives every table, list and toolbar. Compact by default:
+     a board's first job is to show enough rows to reason about. */
+  --row-y: 3px;
+  --row-x: 9px;
+  --row-min: 28px;
+  --head-y: 5px;
+  --cell-font: 13px;
+  --title-font: 13px;
+  --pad-page: 14px 20px;
+  --gap-group: 16px;
+  --chip-y: 3px;
+
+  /* Shadows carry a trace of the indigo rather than being neutral grey —
+     a grey shadow over a violet-tinted ground reads as smudge. */
+  --e1: 0 1px 2px rgba(5, 3, 21, .06), 0 1px 1px rgba(5, 3, 21, .04);
+  --e2: 0 2px 4px rgba(5, 3, 21, .06), 0 8px 20px -6px rgba(20, 12, 80, .14);
+  --e3: 0 4px 8px rgba(5, 3, 21, .08), 0 24px 48px -12px rgba(20, 12, 80, .26);
+  --shadow: var(--e2);
+  --lip: inset 0 1px 0 rgba(255, 255, 255, .85);
+  --glass: rgba(255, 255, 255, .66);
+  --ring: rgba(67, 59, 255, .34);
+
+  /* ---- motion ---------------------------------------------------------
+     `--glide` is the one the moving highlight uses. It is slower than a
+     hover and faster than a page, which is what makes a highlight read as
+     one object travelling rather than two fading. */
+  --fast: 130ms;
+  --base: 220ms;
+  --slow: 420ms;
+  --glide: 260ms;
+  --ease: cubic-bezier(.2, .6, .25, 1);
+  --out: cubic-bezier(.16, 1.02, .3, 1.02);
+  --spring: cubic-bezier(.34, 1.3, .44, 1);
+}
+
+:root[data-density='comfortable'] {
+  --row-y: 6px;
+  --row-x: 11px;
+  --row-min: 38px;
+  --head-y: 9px;
+  --cell-font: 13.5px;
+  --title-font: 14px;
+  --pad-page: 20px 26px;
+  --gap-group: 26px;
+  --chip-y: 6px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    color-scheme: dark;
+
+    /* The same palette after dark. #2F27CE is unreadable on a dark ground
+       (2.7:1), so the accent brightens to #8B85FF, which clears 5.6:1 on
+       every surface here. The hue is held; only the lightness moves, so
+       it still reads as the same brand rather than a different one. */
+    --ground: #080614;
+    --ground-deep: #050310;
+    --surface: #12102A;
+    --surface-2: #1A1836;
+    --surface-3: #232043;
+    --line: #2F2C57;
+    --line-soft: #1E1B3B;
+
+    --ink: #EDEBF8;
+    --ink-soft: #BDB9D6;
+    --muted: #9A95B2;
+
+    --accent: #8B85FF;
+    --accent-hot: #A7A2FF;
+    --accent-ink: #C4C0FF;
+    --accent-soft: #221F47;
+    --brass: #DE9A4E;
+    --brass-soft: #2E2010;
+
+    --c-grey: #A5A0BC;   --c-grey-bg: #221F3C;
+    --c-blue: #8FB2EE;   --c-blue-bg: #16224A;
+    --c-green: #72C9A0;  --c-green-bg: #102E28;
+    --c-amber: #E2AA57;  --c-amber-bg: #2F2412;
+    --c-red: #F0899C;    --c-red-bg: #35182A;
+    --c-violet: #B79AE6; --c-violet-bg: #251C42;
+    --c-teal: #66BFC9;   --c-teal-bg: #102B33;
+
+    --cat-1: #2E86C8;
+    --cat-2: #D9662B;
+    --cat-3: #1FA379;
+    --cat-4: #AE7F2A;
+    --cat-5: #7A6BE0;
+    --cat-6: #C4739F;
+
+    --e1: 0 1px 2px rgba(0, 0, 0, .55);
+    --e2: 0 2px 6px rgba(0, 0, 0, .5), 0 10px 26px -8px rgba(0, 0, 0, .65);
+    --e3: 0 6px 14px rgba(0, 0, 0, .55), 0 28px 60px -14px rgba(0, 0, 0, .8);
+    --shadow: var(--e2);
+    --lip: inset 0 1px 0 rgba(255, 255, 255, .06);
+    --glass: rgba(18, 16, 42, .78);
+    --ring: rgba(167, 162, 255, .36);
+  }
+}
+
+:root[data-theme='dark'] {
+  color-scheme: dark;
+
+  /* The same palette after dark. #2F27CE is unreadable on a dark ground
+     (2.7:1), so the accent brightens to #8B85FF, which clears 5.6:1 on
+     every surface here. The hue is held; only the lightness moves, so
+     it still reads as the same brand rather than a different one. */
+  --ground: #080614;
+  --ground-deep: #050310;
+  --surface: #12102A;
+  --surface-2: #1A1836;
+  --surface-3: #232043;
+  --line: #2F2C57;
+  --line-soft: #1E1B3B;
+
+  --ink: #EDEBF8;
+  --ink-soft: #BDB9D6;
+  --muted: #9A95B2;
+
+  --accent: #8B85FF;
+  --accent-hot: #A7A2FF;
+  --accent-ink: #C4C0FF;
+  --accent-soft: #221F47;
+  --brass: #DE9A4E;
+  --brass-soft: #2E2010;
+
+  --c-grey: #A5A0BC;   --c-grey-bg: #221F3C;
+  --c-blue: #8FB2EE;   --c-blue-bg: #16224A;
+  --c-green: #72C9A0;  --c-green-bg: #102E28;
+  --c-amber: #E2AA57;  --c-amber-bg: #2F2412;
+  --c-red: #F0899C;  --c-red-bg: #35182A;
+  --c-violet: #B79AE6; --c-violet-bg: #251C42;
+  --c-teal: #66BFC9;   --c-teal-bg: #102B33;
+
+  --cat-1: #2E86C8;
+  --cat-2: #D9662B;
+  --cat-3: #1FA379;
+  --cat-4: #AE7F2A;
+  --cat-5: #7A6BE0;
+  --cat-6: #C4739F;
+
+  --e1: 0 1px 2px rgba(0, 0, 0, .55);
+  --e2: 0 2px 6px rgba(0, 0, 0, .5), 0 10px 26px -8px rgba(0, 0, 0, .65);
+  --e3: 0 6px 14px rgba(0, 0, 0, .55), 0 28px 60px -14px rgba(0, 0, 0, .8);
+  --shadow: var(--e2);
+  --lip: inset 0 1px 0 rgba(255, 255, 255, .06);
+  --glass: rgba(18, 16, 42, .78);
+  --ring: rgba(167, 162, 255, .36);
+}
+
+/* ====================================================================== */
+
+* { box-sizing: border-box; }
+
+html, body, #root { height: 100%; }
+
+body {
+  margin: 0;
+  background: var(--ground);
+  color: var(--ink);
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/**
+ * The atmosphere.
+ *
+ * Two very soft washes and a fine grain, fixed behind everything. It is
+ * the difference between an interface sitting on a flat fill and one
+ * sitting on a surface — but it stays quiet enough that a table of dates
+ * on top of it is still the thing you look at.
+ */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(52rem 40rem at 8% -6%, color-mix(in srgb, var(--accent-hot) 30%, transparent), transparent 60%),
+    radial-gradient(44rem 36rem at 98% 4%, color-mix(in srgb, var(--brass) 17%, transparent), transparent 58%),
+    radial-gradient(64rem 46rem at 46% 116%, color-mix(in srgb, var(--accent) 22%, transparent), transparent 62%),
+    var(--ground);
+}
+
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  opacity: .5;
+  mix-blend-mode: soft-light;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)' opacity='.42'/%3E%3C/svg%3E");
+}
+
+#root { position: relative; z-index: 1; }
+
+button, input, textarea, select { font: inherit; color: inherit; }
+
+:focus-visible {
+  outline: 2px solid var(--accent-hot);
+  outline-offset: 2px;
+  border-radius: 3px;
+}
+
+::selection { background: var(--accent-soft); color: var(--accent-ink); }
+
+/* Scrollbars, so a dense table does not hand you a piece of raw browser. */
+* { scrollbar-width: thin; scrollbar-color: var(--line) transparent; }
+*::-webkit-scrollbar { width: 10px; height: 10px; }
+*::-webkit-scrollbar-track { background: transparent; }
+*::-webkit-scrollbar-thumb {
+  background: var(--line);
+  border-radius: 100px;
+  border: 3px solid transparent;
+  background-clip: content-box;
+}
+*::-webkit-scrollbar-thumb:hover { background: var(--muted); background-clip: content-box; }
+
+/* ------------------------------------------------------------ typography */
+
+h1, h2, h3, .display {
+  font-family: 'Inter', 'Segoe UI', sans-serif;
+  font-optical-sizing: auto;
+  letter-spacing: -0.018em;
+  text-wrap: balance;
+}
+
+/* The small uppercase labels that run through the whole interface —
+   eyebrows, counts, timestamps. One rule, so they never drift apart. */
+.ws-title, .pc-label, .af-title, .field > span, .field-label, .su-role,
+.board-count, .bm-role, .rule-meta, .bell-when, .kt-label, .lane-count,
+.section-title, .cc-team-label, .oc-role, .task-meta, .tl-tick,
+.tl-head-side span, .pv-access, .role-chip, .sens, .opt-code, .board-mark,
+.count, .legend-label, .kpi .k, .card-due, .pc-you, .auth-brand p {
+  font-family: 'JetBrains Mono', ui-monospace, 'Cascadia Mono', Consolas, monospace;
+  font-feature-settings: 'tnum' 1;
+}
+
+.tnum, .board-count, .lane-count, .count, .kpi .v, .legend-value,
+.hb-value, .oc-time, .task-due { font-variant-numeric: tabular-nums; }
+
+.muted { color: var(--muted); }
+
+/* ---------------------------------------------------------------- boot */
+
+.boot,
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  gap: 10px;
+  color: var(--muted);
+  text-align: center;
+  padding: 40px;
+}
+.empty-state h1, .empty-state h2 {
+  font-size: 21px;
+  margin: 0;
+  color: var(--ink);
+  font-weight: 700;
+}
+.empty-state p { margin: 0; max-width: 48ch; }
+
+/* The boot state gets a pulse rather than the word "Loading", so the
+   first frame of the app is never a bare sentence on an empty page. */
+.boot::before {
+  content: '';
+  width: 34px; height: 34px;
+  border-radius: 11px;
+  background: linear-gradient(135deg, var(--accent), var(--accent-hot));
+  box-shadow: 0 0 0 0 var(--ring);
+  animation: beacon 1.8s var(--ease) infinite;
+}
+
+@keyframes beacon {
+  0%   { box-shadow: 0 0 0 0 var(--ring); transform: scale(1); }
+  60%  { box-shadow: 0 0 0 16px transparent; transform: scale(1.06); }
+  100% { box-shadow: 0 0 0 0 transparent; transform: scale(1); }
+}
+
+/* ---------------------------------------------------------------- auth */
+
+.auth-page {
+  min-height: 100%;
+  display: grid;
+  place-items: center;
+  padding: 32px 20px;
+  position: relative;
+  overflow: hidden;
+}
+
+/* A slow sweep of light across the sign-in page. It moves once every
+   eighteen seconds — present if you look, invisible if you do not. */
+.auth-page::before {
+  content: '';
+  position: absolute;
+  inset: -40%;
+  background:
+    conic-gradient(from 210deg at 50% 50%,
+      transparent 0deg,
+      color-mix(in srgb, var(--accent-hot) 22%, transparent) 60deg,
+      transparent 140deg,
+      color-mix(in srgb, var(--brass) 14%, transparent) 240deg,
+      transparent 320deg);
+  filter: blur(60px);
+  animation: sweep 18s linear infinite;
+  pointer-events: none;
+}
+
+@keyframes sweep { to { transform: rotate(360deg); } }
+
+.auth-card {
+  width: 100%;
+  max-width: 400px;
+  position: relative;
+  background: var(--glass);
+  backdrop-filter: blur(20px) saturate(140%);
+  -webkit-backdrop-filter: blur(20px) saturate(140%);
+  border: 1px solid color-mix(in srgb, var(--line) 70%, transparent);
+  border-radius: var(--radius-lg);
+  padding: 34px 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 17px;
+  box-shadow: var(--e3), var(--lip);
+  animation: rise-in var(--slow) var(--out) both;
+}
+
+.auth-brand { display: flex; align-items: center; gap: 13px; margin-bottom: 2px; }
+.auth-brand h1 {
+  font-size: 20px;
+  margin: 0;
+  font-weight: 700;
+}
+.auth-brand p {
+  margin: 2px 0 0;
+  font-size: 10px;
+  color: var(--muted);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.auth-mark, .brand-mark {
+  display: inline-grid;
+  place-items: center;
+  width: 42px; height: 42px;
+  flex: none;
+  border-radius: 12px;
+  background: linear-gradient(140deg, var(--accent-hot), var(--accent) 70%);
+  color: #fff;
+  font-family: 'JetBrains Mono', ui-monospace, 'Cascadia Mono', Consolas, monospace;
+  font-weight: 600;
+  font-size: 14px;
+  letter-spacing: 0.04em;
+  box-shadow: 0 6px 16px -4px color-mix(in srgb, var(--accent) 55%, transparent), var(--lip);
+}
+
+/* ---------------------------------------------------------------- forms */
+
+.field { display: flex; flex-direction: column; gap: 6px; }
+.field > span, .field-label {
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.field input,
+.field select,
+.field textarea,
+.input {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 10px 12px;
+  transition: border-color var(--fast) var(--ease), box-shadow var(--fast) var(--ease);
+}
+.field input:hover, .field select:hover, .field textarea:hover { border-color: var(--muted); }
+.field input:focus,
+.field select:focus,
+.field textarea:focus,
+.input:focus {
+  border-color: var(--accent-hot);
+  box-shadow: 0 0 0 4px var(--ring);
+  outline: none;
+}
+.field input::placeholder, .input::placeholder { color: color-mix(in srgb, var(--muted) 70%, transparent); }
+
+.form-error, .form-notice {
+  margin: 0;
+  border-radius: var(--radius);
+  padding: 10px 12px;
+  font-size: 13px;
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  animation: rise-in var(--base) var(--ease) both;
+}
+.form-error {
+  color: var(--c-red);
+  background: var(--c-red-bg);
+  box-shadow: inset 2px 0 0 var(--c-red);
+}
+.form-notice {
+  color: var(--c-green);
+  background: var(--c-green-bg);
+  box-shadow: inset 2px 0 0 var(--c-green);
+}
+
+.auth-foot { margin: 4px 0 0; font-size: 12px; color: var(--muted); text-align: center; }
+.fine-print { font-size: 11.5px; color: var(--muted); }
+
+/* --------------------------------------------------------------- buttons */
+
+.btn {
+  position: relative;
+  border: 1px solid transparent;
+  border-radius: var(--radius);
+  padding: 9px 15px;
+  font-weight: 600;
+  font-size: 13.5px;
+  cursor: pointer;
+  background: var(--surface-2);
+  color: var(--ink);
+  box-shadow: var(--e1);
+  transition:
+    transform var(--fast) var(--ease),
+    box-shadow var(--fast) var(--ease),
+    background-color var(--fast) var(--ease),
+    border-color var(--fast) var(--ease),
+    color var(--fast) var(--ease);
+}
+.btn:hover { background: var(--surface-3); transform: translateY(-1px); box-shadow: var(--e2); }
+/* A press that actually presses. Nothing sells a control like it moving. */
+.btn:active { transform: translateY(0) scale(.985); box-shadow: var(--e1); }
+
+.btn.primary {
+  background: linear-gradient(160deg, var(--accent-hot), var(--accent) 78%);
+  color: #fff;
+  border-color: transparent;
+  box-shadow: 0 2px 6px -1px color-mix(in srgb, var(--accent) 50%, transparent), var(--lip);
+}
+.btn.primary:hover {
+  box-shadow: 0 8px 20px -6px color-mix(in srgb, var(--accent) 62%, transparent), var(--lip);
+  transform: translateY(-1px);
+}
+.btn.primary:disabled,
+.btn:disabled { opacity: .5; cursor: default; transform: none; box-shadow: var(--e1); }
+
+.btn.ghost {
+  background: transparent;
+  border-color: var(--line);
+  color: var(--ink-soft);
+  box-shadow: none;
+}
+.btn.ghost:hover { background: var(--surface-2); border-color: var(--muted); box-shadow: var(--e1); }
+
+.btn.danger {
+  background: var(--c-red-bg);
+  color: var(--c-red);
+  border-color: transparent;
+  box-shadow: none;
+}
+.btn.danger:hover { background: var(--c-red); color: #fff; }
+.btn.danger:disabled { opacity: .55; }
+
+.btn.small { padding: 6px 11px; font-size: 12.5px; border-radius: var(--radius-sm); }
+
+/* ---------------------------------------------------------------- pills */
+
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 10px;
+  border-radius: 100px;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  line-height: 1.5;
+}
+.pill.grey   { background: var(--c-grey-bg);   color: var(--c-grey); }
+.pill.blue   { background: var(--c-blue-bg);   color: var(--c-blue); }
+.pill.green  { background: var(--c-green-bg);  color: var(--c-green); }
+.pill.amber  { background: var(--c-amber-bg);  color: var(--c-amber); }
+.pill.red    { background: var(--c-red-bg);    color: var(--c-red); }
+.pill.violet { background: var(--c-violet-bg); color: var(--c-violet); }
+.pill.teal   { background: var(--c-teal-bg);   color: var(--c-teal); }
+
+/* --------------------------------------------------------------- avatars */
+
+.avatar {
+  display: grid;
+  place-items: center;
+  width: 24px; height: 24px;
+  flex: none;
+  border-radius: 8px;
+  background: linear-gradient(145deg, var(--surface-3), var(--surface-2));
+  border: 1px solid var(--line-soft);
+  color: var(--ink-soft);
+  font-family: 'JetBrains Mono', ui-monospace, 'Cascadia Mono', Consolas, monospace;
+  font-size: 9.5px;
+  font-weight: 600;
+  letter-spacing: .02em;
+  box-shadow: var(--lip);
+}

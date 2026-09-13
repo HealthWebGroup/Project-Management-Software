@@ -1,3 +1,11 @@
+/**
+ * The board as columns of cards, grouped by status, by person, or by client.
+ *
+ * Lanes are derived on every render from the items and the chosen grouping,
+ * not stored. Dragging a card writes the cell that the grouping is based on,
+ * which is what makes the card move - the lane is a view of the data, never
+ * a place the card lives.
+ */
 import { useMemo, useState } from 'react'
 import type { BoardDetail, CellValue, Client, Item } from '../lib/types'
 import { Avatar, colourClass } from './Pill'

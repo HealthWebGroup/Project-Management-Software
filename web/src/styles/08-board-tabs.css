@@ -1,0 +1,59 @@
+/* =====================================================================
+   Board: view tabs, row actions
+   ===================================================================== */
+
+/* A segmented control: one recessed track, one raised slug for the view you
+   are in. The same shape as the Kanban "group by" switch, deliberately. */
+.board-views {
+  display: inline-flex;
+  gap: 2px;
+  padding: 2px;
+  background: var(--surface-2);
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius-sm);
+  flex: none;
+  box-shadow: inset 0 1px 2px color-mix(in srgb, var(--ink) 6%, transparent);
+}
+.board-views button {
+  border: none;
+  background: transparent;
+  padding: 4px 12px;
+  border-radius: 4px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--muted);
+  cursor: pointer;
+  transition: color var(--fast) var(--ease), background-color var(--fast) var(--ease),
+              box-shadow var(--fast) var(--ease);
+}
+.board-views button:hover { color: var(--ink); }
+.board-views button.on {
+  background: var(--surface);
+  color: var(--accent-ink);
+  box-shadow: var(--e1), var(--lip);
+}
+
+.sens.client { background: var(--surface-2); color: var(--ink-soft); }
+.sens.client.blue   { background: var(--c-blue-bg); color: var(--c-blue); }
+.sens.client.teal   { background: var(--c-teal-bg); color: var(--c-teal); }
+.sens.client.green  { background: var(--c-green-bg); color: var(--c-green); }
+.sens.client.amber  { background: var(--c-amber-bg); color: var(--c-amber); }
+.sens.client.red    { background: var(--c-red-bg); color: var(--c-red); }
+.sens.client.violet { background: var(--c-violet-bg); color: var(--c-violet); }
+.sens.client.grey   { background: var(--c-grey-bg); color: var(--c-grey); }
+
+.row-actions { display: flex; gap: 1px; align-items: center; }
+.row-timer {
+  border: none;
+  background: transparent;
+  color: var(--muted);
+  font-size: 11px;
+  cursor: pointer;
+  padding: 3px 5px;
+  border-radius: 3px;
+  opacity: 0;
+}
+.grid tbody tr:hover .row-timer { opacity: 1; }
+.row-timer:hover { color: var(--accent); background: var(--accent-soft); }
+.row-timer.on { opacity: 1; color: var(--accent); background: var(--accent-soft); }
+.col-actions { width: 62px; }

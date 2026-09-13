@@ -1,3 +1,10 @@
+/**
+ * The small coloured label, and the circle of initials beside a name.
+ *
+ * colourClass exists because colours arrive from the database as free text.
+ * An unknown one falls back to grey rather than producing a class that
+ * matches no rule and renders an invisible pill.
+ */
 const KNOWN = ['grey', 'blue', 'green', 'amber', 'red', 'violet', 'teal']
 
 export function colourClass(colour?: string): string {

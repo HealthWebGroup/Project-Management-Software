@@ -1,0 +1,142 @@
+/* ---------------------------------------------------------------- shell */
+
+.shell {
+  display: grid;
+  grid-template-columns: var(--sidebar-w) 1fr;
+  height: 100%;
+  gap: 10px;
+  padding: 10px;
+}
+
+/**
+ * The sidebar floats rather than being a panel bolted to the edge: rounded,
+ * lifted off the ambient wash, frosted so the colour behind it shows through.
+ * That single decision is most of why the app stops reading as a flat form.
+ */
+.sidebar {
+  background: var(--glass);
+  backdrop-filter: blur(22px) saturate(150%);
+  -webkit-backdrop-filter: blur(22px) saturate(150%);
+  border: 1px solid color-mix(in srgb, var(--line) 65%, transparent);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--e2), var(--lip);
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.sidebar-brand {
+  display: flex; align-items: center; gap: 11px;
+  padding: 16px 16px 14px;
+  border-bottom: 1px solid var(--line-soft);
+}
+.brand-name { font-family: 'Inter', 'Segoe UI', sans-serif; font-weight: 700; font-size: 15px; letter-spacing: -0.02em; }
+
+.sidebar-nav { flex: 1; overflow-y: auto; padding: 14px 10px; }
+.sidebar-note, .sidebar-error { font-size: 12.5px; color: var(--muted); padding: 6px 8px; margin: 0; }
+.sidebar-error { color: var(--c-red); }
+
+.ws { margin-bottom: 20px; }
+.ws-title {
+  font-size: 9.5px;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin: 0 0 8px;
+  padding: 0 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+/* A rule that runs out from the label to the edge — chart-sheet section
+   marking, and it costs nothing. */
+.ws-title::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(90deg, var(--line), transparent);
+}
+.ws ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
+
+.board-link {
+  position: relative;
+  display: grid;
+  grid-template-columns: 26px 1fr auto;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: var(--radius);
+  text-decoration: none;
+  color: var(--ink-soft);
+  transition: background-color var(--fast) var(--ease), color var(--fast) var(--ease);
+}
+/* The active marker grows from nothing rather than appearing, so moving
+   between boards reads as one indicator travelling. */
+.board-link::before {
+  content: '';
+  position: absolute;
+  left: 0; top: 50%;
+  width: 3px; height: 0;
+  border-radius: 0 3px 3px 0;
+  background: var(--accent-hot);
+  transform: translateY(-50%);
+  transition: height var(--base) var(--out);
+}
+.board-link:hover { background: var(--surface-2); color: var(--ink); }
+.board-link.active { background: var(--accent-soft); color: var(--accent-ink); font-weight: 600; }
+.board-link.active::before { height: 62%; }
+
+.board-mark {
+  display: grid; place-items: center;
+  width: 26px; height: 26px;
+  border-radius: 7px;
+  background: var(--surface-2);
+  border: 1px solid var(--line-soft);
+  font-size: 9px;
+  font-weight: 600;
+  color: var(--muted);
+  transition: all var(--fast) var(--ease);
+}
+.board-link.active .board-mark {
+  background: linear-gradient(140deg, var(--accent-hot), var(--accent));
+  border-color: transparent;
+  color: #fff;
+  box-shadow: 0 3px 8px -2px color-mix(in srgb, var(--accent) 60%, transparent);
+}
+.board-name { font-size: 13.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.board-count {
+  font-size: 10.5px;
+  color: var(--muted);
+}
+
+.sidebar-user {
+  border-top: 1px solid var(--line-soft);
+  padding: 13px 16px 15px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  background: color-mix(in srgb, var(--surface-2) 50%, transparent);
+}
+.su-name { font-weight: 600; font-size: 13.5px; }
+.su-role {
+  font-size: 9.5px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 8px;
+}
+
+.main {
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  background: var(--glass);
+  backdrop-filter: blur(22px) saturate(150%);
+  -webkit-backdrop-filter: blur(22px) saturate(150%);
+  border: 1px solid color-mix(in srgb, var(--line) 65%, transparent);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--e2), var(--lip);
+}

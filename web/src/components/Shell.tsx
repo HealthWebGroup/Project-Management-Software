@@ -1,3 +1,10 @@
+/**
+ * The frame every signed-in page renders inside: sidebar, top bar, command
+ * palette, and the providers for clients and the running timer.
+ *
+ * It owns the list of boards because the sidebar needs all of them, not the
+ * filtered set - see the note on the fetch below.
+ */
 import { useEffect, useState } from 'react'
 import { Outlet, useLocation } from 'react-router-dom'
 import { api } from '../lib/api'

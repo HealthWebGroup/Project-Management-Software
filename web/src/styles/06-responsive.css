@@ -1,0 +1,93 @@
+/* -------------------------------------------------------------- responsive */
+
+/* The drawer toggle only exists on narrow screens. */
+.menu-btn { display: none; }
+.sidebar-scrim { display: none; }
+.su-actions { display: flex; gap: 6px; flex-wrap: wrap; }
+
+.board-picker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: center;
+  margin-top: 8px;
+}
+.picker-card {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 14px 20px;
+  min-width: 190px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  text-decoration: none;
+  color: inherit;
+  text-align: left;
+}
+.picker-card:hover { border-color: var(--accent); background: var(--accent-soft); }
+.picker-name { font-weight: 600; font-size: 15px; }
+.picker-count {
+  font-family: 'JetBrains Mono', ui-monospace, 'Cascadia Mono', Consolas, monospace;
+  font-size: 11px;
+  color: var(--muted);
+}
+
+@media (max-width: 900px) {
+  .shell { grid-template-columns: 1fr; }
+
+  /* The sidebar becomes a drawer. It must stay reachable - hiding it
+     outright left no way to choose a board. */
+  .sidebar {
+    position: fixed;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    width: min(280px, 84vw);
+    z-index: 70;
+    transform: translateX(-102%);
+    transition: transform .18s ease;
+    box-shadow: var(--shadow);
+  }
+  .sidebar.open { transform: translateX(0); }
+
+  .sidebar-scrim {
+    display: block;
+    position: fixed;
+    inset: 0;
+    background: rgba(8, 20, 24, .42);
+    z-index: 69;
+  }
+
+  .menu-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    position: fixed;
+    top: 10px;
+    left: 12px;
+    z-index: 71;
+    padding: 7px 13px;
+    border: 1px solid var(--line);
+    border-radius: 100px;
+    background: var(--surface);
+    color: var(--ink);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    box-shadow: 0 2px 8px rgba(12, 32, 38, .12);
+  }
+  .menu-btn:hover { border-color: var(--accent); color: var(--accent-ink); }
+
+  /* Leave room for the floating button. */
+  .board-head { padding: 56px 16px 10px; }
+  .board-scroll { padding: 14px 16px 40px; }
+  .empty-state { padding-top: 70px; }
+  .board-tools .count { margin-left: 0; }
+  .panel-field { grid-template-columns: 1fr; gap: 4px; }
+  .panel { width: 100%; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * { animation: none !important; transition: none !important; }
+}

@@ -1,3 +1,7 @@
+/**
+ * Where the interface starts. Providers wrap in the order they depend on
+ * each other: routing, then who is signed in, then the app.
+ */
 import React from 'react'
 import ReactDOM from 'react-dom/client'
 import { BrowserRouter } from 'react-router-dom'

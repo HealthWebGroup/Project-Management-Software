@@ -1,0 +1,106 @@
+/* =====================================================================
+   Dashboard
+   ===================================================================== */
+
+.dash-block {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 16px 18px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin-top: 16px;
+}
+.dash-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.dash-head h2 { margin: 0; font-size: 15px; font-weight: 600; letter-spacing: -.005em; }
+.dash-sub { font-size: 12px; color: var(--muted); }
+
+.dash-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 16px; }
+.dash-grid .dash-block { margin-top: 0; }
+
+.all-clear {
+  margin: 0;
+  font-size: 13.5px;
+  color: var(--c-green);
+  background: var(--c-green-bg);
+  padding: 11px 14px;
+  border-radius: var(--radius);
+}
+
+.risk-link { color: var(--ink); font-weight: 600; text-decoration: none; }
+.risk-link:hover { color: var(--accent-ink); text-decoration: underline; }
+table.data tr.late td { background: color-mix(in srgb, var(--c-red-bg) 45%, transparent); }
+.late-by { color: var(--c-red); font-weight: 600; }
+.unowned { color: var(--c-amber); font-weight: 600; }
+
+/* One stacked bar. A 2px surface gap between segments keeps adjacent
+   fills readable without a border darkening the colour. */
+.stack { display: flex; height: 26px; border-radius: 5px; overflow: hidden; gap: 2px; }
+.stack-seg { display: block; min-width: 3px; border-radius: 2px; }
+.stack-seg.grey   { background: var(--c-grey); }
+.stack-seg.blue   { background: var(--c-blue); }
+.stack-seg.green  { background: var(--c-green); }
+.stack-seg.amber  { background: var(--c-amber); }
+.stack-seg.red    { background: var(--c-red); }
+.stack-seg.violet { background: var(--c-violet); }
+.stack-seg.teal   { background: var(--c-teal); }
+
+.legend { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px 18px; }
+.legend li { display: flex; align-items: center; gap: 7px; font-size: 12.5px; }
+.legend-dot { width: 9px; height: 9px; border-radius: 2px; flex: none; }
+.legend-dot.grey   { background: var(--c-grey); }
+.legend-dot.blue   { background: var(--c-blue); }
+.legend-dot.green  { background: var(--c-green); }
+.legend-dot.amber  { background: var(--c-amber); }
+.legend-dot.red    { background: var(--c-red); }
+.legend-dot.violet { background: var(--c-violet); }
+.legend-dot.teal   { background: var(--c-teal); }
+.legend-label { color: var(--ink-soft); }
+.legend-value { font-family: 'JetBrains Mono', ui-monospace, 'Cascadia Mono', Consolas, monospace; font-variant-numeric: tabular-nums; color: var(--ink); font-weight: 600; }
+
+/* Categorical fills for identity in charts. */
+.hb-fill.cat-1 { background: var(--cat-1); }
+.hb-fill.cat-2 { background: var(--cat-2); }
+.hb-fill.cat-3 { background: var(--cat-3); }
+.hb-fill.cat-4 { background: var(--cat-4); }
+.hb-fill.cat-5 { background: var(--cat-5); }
+.hb-fill.cat-6 { background: var(--cat-6); }
+.hb-fill.cat-0 { background: var(--c-grey); }
+
+.hb-fill { position: relative; }
+.hb-overdue {
+  position: absolute;
+  right: 0; top: 0; bottom: 0;
+  background: var(--c-red);
+  border-radius: 0 4px 4px 0;
+  box-shadow: -2px 0 0 0 var(--surface);
+}
+.hb-late { font-style: normal; color: var(--c-red); font-size: 11px; }
+
+.kpi-row .kpi { border: 1px solid var(--line); }
+
+/* ---- crash screen ---- */
+
+.crash {
+  max-width: 520px;
+  margin: 16vh auto;
+  padding: 0 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  text-align: center;
+}
+.crash h1 { margin: 0; font-size: 22px; letter-spacing: -.015em; }
+.crash p { margin: 0 auto; color: var(--muted); max-width: 46ch; }
+.crash-actions { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; }
+.crash-detail { text-align: left; margin-top: 8px; }
+.crash-detail summary { font-size: 12.5px; color: var(--muted); cursor: pointer; }
+.crash-detail pre {
+  background: var(--surface-2);
+  padding: 10px 12px;
+  border-radius: var(--radius);
+  font-size: 12px;
+  overflow-x: auto;
+  margin: 8px 0 0;
+}

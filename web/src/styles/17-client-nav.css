@@ -1,0 +1,161 @@
+/* =====================================================================
+   Client-first navigation
+   ---------------------------------------------------------------------
+   Clients at the top level, their projects nested underneath. The visual
+   job is to make two levels obviously different without making the second
+   one feel like an afterthought — a project is where the work is, so it
+   gets the same weight of type, just less of the furniture.
+   ===================================================================== */
+
+.nav-section { margin-bottom: 14px; }
+.nav-section:last-child { margin-bottom: 0; }
+
+.nav-head {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 9px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin: 0 0 6px;
+  padding: 0 9px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+/* A rule that runs to the edge, so the heading reads as a divider rather
+   than a floating label. */
+.nav-head::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--line-soft);
+}
+
+.client-list, .project-list { list-style: none; margin: 0; padding: 0; }
+
+.client-row { margin-bottom: 1px; }
+
+.client-bar {
+  display: flex;
+  align-items: center;
+  gap: 1px;
+  border-radius: var(--radius-sm);
+}
+
+.client-twist {
+  flex: none;
+  width: 18px;
+  height: 26px;
+  display: grid;
+  place-items: center;
+  border: none;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  transition: color var(--fast) var(--ease);
+}
+.client-twist svg { transition: transform var(--fast) var(--ease); }
+.client-row.open .client-twist svg { transform: rotate(90deg); }
+.client-twist:hover { color: var(--ink); }
+
+.client-link {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 8px 4px 4px;
+  border-radius: var(--radius-sm);
+  text-decoration: none;
+  color: var(--ink-soft);
+  transition: background-color var(--fast) var(--ease), color var(--fast) var(--ease);
+}
+.client-link:hover { background: var(--surface-2); color: var(--ink); }
+.client-link.active { background: var(--accent-soft); color: var(--accent-ink); }
+
+.client-mark {
+  flex: none;
+  width: 20px; height: 20px;
+  display: grid;
+  place-items: center;
+  border-radius: 5px;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 8px;
+  font-weight: 600;
+  letter-spacing: -0.04em;
+  background: var(--surface-3);
+  color: var(--ink-soft);
+}
+.client-mark.blue   { background: var(--c-blue-bg);   color: var(--c-blue); }
+.client-mark.green  { background: var(--c-green-bg);  color: var(--c-green); }
+.client-mark.amber  { background: var(--c-amber-bg);  color: var(--c-amber); }
+.client-mark.red    { background: var(--c-red-bg);    color: var(--c-red); }
+.client-mark.violet { background: var(--c-violet-bg); color: var(--c-violet); }
+.client-mark.teal   { background: var(--c-teal-bg);   color: var(--c-teal); }
+.client-mark.grey   { background: var(--c-grey-bg);   color: var(--c-grey); }
+
+.client-name {
+  flex: 1;
+  min-width: 0;
+  font-size: 13px;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.client-count, .project-count {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 9.5px;
+  letter-spacing: -0.05em;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+  flex: none;
+}
+
+/* The rail is what ties a project to its client. Without it the second
+   level reads as a separate list that happens to be indented. */
+.project-list {
+  margin: 1px 0 4px 13px;
+  padding-left: 10px;
+  border-left: 1px solid var(--line-soft);
+}
+.project-list.flush { margin-left: 0; padding-left: 0; border-left: none; }
+
+.project-link {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 3px 8px;
+  border-radius: var(--radius-sm);
+  text-decoration: none;
+  color: var(--ink-soft);
+  position: relative;
+  transition: background-color var(--fast) var(--ease), color var(--fast) var(--ease);
+}
+.project-link:hover { background: var(--surface-2); color: var(--ink); }
+.project-link.active {
+  background: var(--accent-soft);
+  color: var(--accent-ink);
+  font-weight: 600;
+}
+/* The active project reaches back and marks the rail it hangs from. */
+.project-link.active::before {
+  content: '';
+  position: absolute;
+  left: -11px;
+  top: 4px; bottom: 4px;
+  width: 2px;
+  border-radius: 1px;
+  background: var(--accent-hot);
+}
+.project-list.flush .project-link.active::before { left: -1px; }
+
+.project-name {
+  flex: 1;
+  min-width: 0;
+  font-size: 12.5px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

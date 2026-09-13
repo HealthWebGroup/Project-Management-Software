@@ -1,3 +1,16 @@
+/**
+ * The shapes the API sends and the interface reads.
+ *
+ * These are hand-written to match what api/src actually returns. They are not
+ * generated, so when a route changes shape, the matching type here changes
+ * with it - the typecheck in the deploy is what catches the ones that don't.
+ *
+ * Grouped in the order a request tends to travel: who you are, then boards
+ * and their contents, then clients, time, the dashboard, people and access,
+ * and finally automations and notifications.
+ */
+
+/* ----------------------------------------------------------- who you are */
 export type Role = 'ADMIN' | 'MANAGER' | 'MEMBER' | 'VIEWER' | 'GUEST'
 
 export type ColumnType =
@@ -24,6 +37,8 @@ export interface LoginResponse {
   user: User
 }
 
+
+/* --------------------------------------------- a board and what is on it */
 export interface StatusLabel {
   id: string
   label: string
@@ -110,6 +125,8 @@ export interface BoardSummary {
   itemCount: number
 }
 
+
+/* ----------------------------------------------------------- the sidebar */
 export interface Workspace {
   id: string
   name: string
@@ -118,6 +135,8 @@ export interface Workspace {
   boards: BoardSummary[]
 }
 
+
+/* ------------------------------------------------------ one item, opened */
 export interface ItemUpdate {
   id: string
   authorId?: string
@@ -143,6 +162,8 @@ export interface ItemDetail {
 
 // ------------------------------------------------------------- clients
 
+
+/* --------------------------------------------------------------- clients */
 export type ClientStatus = 'PROSPECT' | 'ACTIVE' | 'PAUSED' | 'ARCHIVED'
 export type ClientRole = 'LEAD' | 'MEMBER'
 
@@ -173,6 +194,8 @@ export interface Client {
 
 // ------------------------------------------------------------ presence
 
+
+/* -------------------------------------- time, sessions and who is online */
 export interface OnlineUser {
   userId: string
   fullName: string
@@ -236,6 +259,8 @@ export interface TimeSummary {
 
 // ------------------------------------------------------------ dashboard
 
+
+/* --------------------------------------------------------- the dashboard */
 export interface StatusSlice {
   labelId: string
   label: string
@@ -280,6 +305,8 @@ export interface Dashboard {
 
 // ---------------------------------------------------------------- todos
 
+
+/* -------------------------------------------------------- private to-dos */
 export interface Todo {
   id: string
   title: string
@@ -293,6 +320,8 @@ export interface Todo {
 
 // ------------------------------------------------------- people & access
 
+
+/* --------------------------------------- people, roles and who sees what */
 export type UserStatus = 'ACTIVE' | 'SUSPENDED' | 'LEAVER'
 export type BoardPermission = 'VIEW' | 'EDIT' | 'ADMIN'
 
@@ -342,6 +371,8 @@ export interface AccessPreview {
 
 // ----------------------------------------------------------- automations
 
+
+/* ----------------------------------------------------------- automations */
 export type AutomationTrigger = 'STATUS_BECOMES' | 'DATE_ARRIVES' | 'ITEM_CREATED'
 export type AutomationAction = 'MOVE_TO_GROUP' | 'SET_STATUS' | 'ASSIGN_PEOPLE' | 'NOTIFY'
 
@@ -377,6 +408,8 @@ export interface AutomationList {
 
 // --------------------------------------------------------- notifications
 
+
+/* --------------------------------------------------------- notifications */
 export interface Notification {
   id: string
   kind: string
@@ -396,6 +429,8 @@ export interface NotificationList {
 
 // ------------------------------------------------------- board membership
 
+
+/* ------------------------------------------------------ per-board access */
 export interface BoardMember {
   userId: string
   fullName: string

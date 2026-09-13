@@ -1,3 +1,10 @@
+/**
+ * Who is on the team, what each person may do, and which clients they see.
+ *
+ * Administrators only - the two levers (role, and the client list) are the
+ * same two the API enforces, and the preview dialog shows the result of both
+ * together so the effect of a change is visible before it is saved.
+ */
 import { useEffect, useMemo, useState } from 'react'
 import { api, ApiError } from '../lib/api'
 import type { AccessPreview, Client, ClientRole, Person, Role, UserStatus } from '../lib/types'

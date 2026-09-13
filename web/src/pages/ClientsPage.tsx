@@ -1,3 +1,9 @@
+/**
+ * The clients, as cards: adding one, editing it, and who works on it.
+ *
+ * safeUrl at the bottom is the reason a client website is rendered as a link
+ * at all - anything that is not plain http(s) is dropped rather than trusted.
+ */
 import { useEffect, useState } from 'react'
 import { api, ApiError } from '../lib/api'
 import type { Client, ClientRole, ClientStatus, User } from '../lib/types'

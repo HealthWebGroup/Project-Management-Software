@@ -1,0 +1,550 @@
+/* ---------------------------------------------------------------- board */
+
+.board { display: flex; flex-direction: column; height: 100%; min-height: 0; }
+
+/* The header used to be three stacked rows — title, view switcher, tools —
+   which ate 180px before a single row of work appeared. It is now two rows
+   that each carry twice as much, and the board description moved to a
+   tooltip on the title rather than taking a line of its own. */
+.board-head {
+  padding: 10px 20px 9px;
+  border-bottom: 1px solid var(--line);
+  background: linear-gradient(to bottom,
+    color-mix(in srgb, var(--surface) 70%, transparent),
+    color-mix(in srgb, var(--surface) 30%, transparent));
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.board-title-row { display: flex; align-items: center; justify-content: space-between; gap: 14px; }
+.board-title-left { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.board-head h1 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.board-desc { margin: 5px 0 0; font-size: 13px; color: var(--muted); }
+
+.board-flags { display: flex; gap: 8px; flex-wrap: wrap; }
+.sens {
+  font-family: 'JetBrains Mono', ui-monospace, 'Cascadia Mono', Consolas, monospace;
+  font-size: 10px;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  padding: 4px 9px;
+  border-radius: 100px;
+  white-space: nowrap;
+}
+.sens {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid transparent;
+}
+/* A dot before the label, so sensitivity is legible as a shape at a glance
+   and not only as a colour. */
+.sens::before {
+  content: '';
+  width: 5px; height: 5px;
+  border-radius: 50%;
+  background: currentColor;
+}
+.sens.high { background: var(--c-red-bg); color: var(--c-red); border-color: color-mix(in srgb, var(--c-red) 30%, transparent); }
+.sens.mid { background: var(--c-amber-bg); color: var(--c-amber); }
+.sens.view { background: var(--surface-2); color: var(--muted); }
+
+.board-tools { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.search {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  padding: 5px 11px;
+  font-size: 13px;
+  min-width: 200px;
+  box-shadow: var(--e1);
+  transition: border-color var(--fast) var(--ease), box-shadow var(--fast) var(--ease),
+              min-width var(--base) var(--ease);
+}
+.search:focus {
+  border-color: var(--accent-hot);
+  box-shadow: 0 0 0 3px var(--ring);
+  outline: none;
+  min-width: 260px;
+}
+.toggle { display: flex; align-items: center; gap: 6px; font-size: 12.5px; color: var(--ink-soft); cursor: pointer; white-space: nowrap; }
+.count {
+  margin-left: auto;
+  font-family: 'JetBrains Mono', ui-monospace, 'Cascadia Mono', Consolas, monospace;
+  font-size: 11.5px;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.notice {
+  margin: 12px 26px 0;
+  padding: 11px 15px;
+  background: var(--c-amber-bg);
+  color: var(--c-amber);
+  border-radius: var(--radius);
+  font-size: 13px;
+  box-shadow: inset 2px 0 0 var(--c-amber), var(--e1);
+  animation: rise-in var(--base) var(--out) both;
+}
+
+.board-scroll {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--pad-page);
+  padding-bottom: 56px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap-group);
+}
+
+/* --------------------------------------------------------------- groups */
+
+.group { display: flex; flex-direction: column; gap: 0; }
+
+/* Sticky, so you always know which group the row under your cursor belongs
+   to once a board is long enough to scroll — the single most common way to
+   mis-read a dense table. */
+.group-head {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 3px 0 5px 11px;
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  background: linear-gradient(to bottom, var(--ground) 72%, transparent);
+}
+.group-head::before {
+  content: '';
+  position: absolute;
+  left: 0; top: 4px; bottom: 7px;
+  width: 3px;
+  border-radius: 2px;
+  background: var(--bar, var(--c-grey));
+}
+.group-head h2 {
+  margin: 0;
+  font-family: 'Inter', 'Segoe UI', sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  text-transform: uppercase;
+  color: var(--bar, var(--ink));
+}
+.group-count {
+  font-family: 'JetBrains Mono', ui-monospace, 'Cascadia Mono', Consolas, monospace;
+  font-size: 11px;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.group-head.grey   { --bar: var(--c-grey); }
+.group-head.blue   { --bar: var(--c-blue); }
+.group-head.green  { --bar: var(--c-green); }
+.group-head.amber  { --bar: var(--c-amber); }
+.group-head.red    { --bar: var(--c-red); }
+.group-head.violet { --bar: var(--c-violet); }
+.group-head.teal   { --bar: var(--c-teal); }
+
+.grid-scroll {
+  overflow-x: auto;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+  /* A real surface, not a flat rectangle: a lit top edge, a close contact
+     shadow and a wider ambient one. This is most of what separates "looks
+     like a wireframe" from "looks like a product". */
+  box-shadow: var(--lip), var(--e1), 0 12px 28px -20px rgba(6, 33, 43, .5);
+}
+
+.grid { border-collapse: collapse; width: 100%; }
+
+.grid th {
+  text-align: left;
+  font-family: 'JetBrains Mono', ui-monospace, 'Cascadia Mono', Consolas, monospace;
+  font-size: 9.5px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+  font-weight: 600;
+  padding: var(--head-y) var(--row-x);
+  background: var(--surface-2);
+  border-bottom: 1px solid var(--line);
+  white-space: nowrap;
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  backdrop-filter: blur(8px);
+}
+.grid td {
+  padding: var(--row-y) var(--row-x);
+  border-bottom: 1px solid var(--line-soft);
+  vertical-align: middle;
+  height: var(--row-min);
+  font-size: var(--cell-font);
+}
+.grid tbody tr {
+  transition: background-color var(--fast) var(--ease);
+}
+.grid tbody tr:last-child td { border-bottom: none; }
+.grid tbody tr:hover { background: color-mix(in srgb, var(--accent-soft) 45%, transparent); }
+
+/* Zebra at 40% strength — enough to track a row across eight columns,
+   not enough to read as stripes. Only earns its place at this density. */
+.grid tbody tr:nth-child(even) { background: color-mix(in srgb, var(--surface-2) 40%, transparent); }
+.grid tbody tr:nth-child(even):hover { background: color-mix(in srgb, var(--accent-soft) 45%, transparent); }
+
+/* The row the keyboard is on. Distinct from hover so both can be true. */
+.grid tbody tr.cursor { background: color-mix(in srgb, var(--accent-soft) 70%, transparent); }
+.grid tbody tr.cursor td:first-child { box-shadow: inset 2px 0 0 var(--accent-hot); }
+
+.col-item { min-width: 240px; width: 300px; }
+/* The flex lives on a div inside the cell, never on the td itself. A
+   display:flex table cell drops out of the row box, which silently broke
+   row backgrounds across every column to its right. */
+.grid td.col-item { padding-left: 12px; position: relative; }
+.item-cell { display: flex; align-items: center; gap: 4px; min-width: 0; }
+.grid td.col-item::before {
+  opacity: .55;
+  content: '';
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: 3px;
+  background: var(--bar, transparent);
+  transition: opacity var(--fast) var(--ease), width var(--fast) var(--ease);
+}
+.grid tbody tr:hover td.col-item::before { opacity: 1; width: 4px; }
+.row.grey   { --bar: var(--c-grey); }
+.row.blue   { --bar: var(--c-blue); }
+.row.green  { --bar: var(--c-green); }
+.row.amber  { --bar: var(--c-amber); }
+.row.red    { --bar: var(--c-red); }
+.row.violet { --bar: var(--c-violet); }
+.row.teal   { --bar: var(--c-teal); }
+
+.row.empty td { color: var(--muted); font-size: 13px; padding: 12px 14px; }
+
+.col-actions { width: 34px; }
+
+.item-title {
+  flex: 1;
+  min-width: 0;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  padding: 3px 6px;
+  font-weight: 600;
+  font-size: var(--title-font);
+}
+.item-title:hover:not(:disabled) { border-color: var(--line); }
+.item-title:focus { background: var(--ground); border-color: var(--accent); outline: none; }
+
+.open-item {
+  border: none;
+  background: transparent;
+  color: var(--muted);
+  font-family: 'JetBrains Mono', ui-monospace, 'Cascadia Mono', Consolas, monospace;
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+  opacity: 0;
+  padding: 3px 5px;
+  border-radius: 3px;
+}
+.grid tbody tr:hover .open-item { opacity: 1; }
+.open-item:hover { color: var(--accent); background: var(--accent-soft); }
+
+.row-delete {
+  border: none;
+  background: transparent;
+  color: var(--muted);
+  font-size: 17px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: 3px;
+  opacity: 0;
+}
+.grid tbody tr:hover .row-delete { opacity: 1; }
+.row-delete:hover { color: var(--c-red); background: var(--c-red-bg); }
+
+.add-row {
+  align-self: flex-start;
+  margin-top: 7px;
+  border: 1px dashed var(--line);
+  background: transparent;
+  color: var(--muted);
+  border-radius: var(--radius);
+  padding: 6px 12px;
+  font-size: 12.5px;
+  cursor: pointer;
+}
+.add-row:hover { color: var(--accent); border-color: var(--accent); background: var(--accent-soft); }
+
+/* ---------------------------------------------------------------- cells */
+
+.cell-wrap { position: relative; }
+.muted { color: var(--muted); }
+
+.pill {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 100px;
+  font-size: 11.5px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+.pill.grey   { background: var(--c-grey-bg);   color: var(--c-grey); }
+.pill.blue   { background: var(--c-blue-bg);   color: var(--c-blue); }
+.pill.green  { background: var(--c-green-bg);  color: var(--c-green); }
+.pill.amber  { background: var(--c-amber-bg);  color: var(--c-amber); }
+.pill.red    { background: var(--c-red-bg);    color: var(--c-red); }
+.pill.violet { background: var(--c-violet-bg); color: var(--c-violet); }
+.pill.teal   { background: var(--c-teal-bg);   color: var(--c-teal); }
+
+/* The status block is the thing the eye lands on first when scanning a
+   board, so it carries the depth budget: a tinted ground, a border in the
+   same hue, and a lit top edge. Text stays the dark hue rather than white
+   on saturated colour — that is what keeps it readable at 12px and keeps
+   contrast passing in both themes. */
+.status-cell {
+  width: 100%;
+  border: 1px solid transparent;
+  border-radius: 5px;
+  padding: var(--chip-y) 8px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: -0.005em;
+  cursor: pointer;
+  text-align: center;
+  line-height: 1.35;
+  transition: filter var(--fast) var(--ease), box-shadow var(--fast) var(--ease),
+              transform var(--fast) var(--ease);
+}
+.status-cell:not(:disabled):hover { filter: brightness(0.97) saturate(1.12); }
+.status-cell:not(:disabled):active { transform: scale(0.985); }
+.status-cell:disabled { cursor: default; }
+
+/* An empty cell should read as empty, not as a control waiting to be
+   filled. Previously every blank Owner and Priority drew a filled box, so
+   a board with three real values looked like a form with twenty. */
+.status-cell.unset {
+  background: transparent;
+  color: var(--muted);
+  border-color: transparent;
+  font-weight: 500;
+  opacity: .6;
+}
+.status-cell.unset:not(:disabled):hover {
+  opacity: 1;
+  background: var(--surface-2);
+  border-color: var(--line-soft);
+  border-style: dashed;
+  filter: none;
+}
+.status-cell.grey   { --sc: var(--c-grey); }
+.status-cell.blue   { --sc: var(--c-blue); }
+.status-cell.green  { --sc: var(--c-green); }
+.status-cell.amber  { --sc: var(--c-amber); }
+.status-cell.red    { --sc: var(--c-red); }
+.status-cell.violet { --sc: var(--c-violet); }
+.status-cell.teal   { --sc: var(--c-teal); }
+.status-cell.grey,
+.status-cell.blue,
+.status-cell.green,
+.status-cell.amber,
+.status-cell.red,
+.status-cell.violet,
+.status-cell.teal {
+  color: var(--sc);
+  background:
+    linear-gradient(to bottom,
+      color-mix(in srgb, var(--sc) 4%, transparent),
+      color-mix(in srgb, var(--sc) 14%, transparent));
+  background-color: var(--surface);
+  border-color: color-mix(in srgb, var(--sc) 26%, transparent);
+  box-shadow: inset 0 1px 0 color-mix(in srgb, #fff 55%, transparent);
+}
+
+.popover {
+  position: absolute;
+  z-index: 40;
+  top: calc(100% + 4px);
+  left: 0;
+  min-width: 100%;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  box-shadow: var(--shadow);
+  padding: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-height: 260px;
+  overflow-y: auto;
+}
+.popover.wide { min-width: 210px; }
+.popover.pad { padding: 12px; gap: 10px; }
+
+.popover-row {
+  border: none;
+  background: transparent;
+  border-radius: 4px;
+  padding: 6px 9px;
+  font-size: 12.5px;
+  font-weight: 500;
+  text-align: left;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.popover-row:hover { filter: brightness(0.96); }
+.popover-row.grey   { background: var(--c-grey-bg);   color: var(--c-grey); }
+.popover-row.blue   { background: var(--c-blue-bg);   color: var(--c-blue); }
+.popover-row.green  { background: var(--c-green-bg);  color: var(--c-green); }
+.popover-row.amber  { background: var(--c-amber-bg);  color: var(--c-amber); }
+.popover-row.red    { background: var(--c-red-bg);    color: var(--c-red); }
+.popover-row.violet { background: var(--c-violet-bg); color: var(--c-violet); }
+.popover-row.teal   { background: var(--c-teal-bg);   color: var(--c-teal); }
+.popover-row.clear { color: var(--muted); }
+.popover-row.person { background: transparent; color: var(--ink); }
+.popover-row.person:hover { background: var(--surface-2); }
+.popover-row.person.selected { background: var(--accent-soft); color: var(--accent-ink); }
+.person-name { flex: 1; }
+.tick { color: var(--accent); font-weight: 700; }
+
+.mini-field { display: flex; flex-direction: column; gap: 4px; }
+.mini-field > span {
+  font-family: 'JetBrains Mono', ui-monospace, 'Cascadia Mono', Consolas, monospace;
+  font-size: 9.5px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.mini-field input {
+  background: var(--ground);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  padding: 6px 8px;
+}
+
+.avatar {
+  display: inline-grid;
+  place-items: center;
+  width: 25px; height: 25px;
+  border-radius: 100px;
+  background: var(--accent-soft);
+  color: var(--accent-ink);
+  font-family: 'JetBrains Mono', ui-monospace, 'Cascadia Mono', Consolas, monospace;
+  font-size: 9.5px;
+  font-weight: 600;
+  flex: none;
+}
+
+.people-cell, .dropdown-cell, .timeline-cell {
+  width: 100%;
+  border: 1px solid transparent;
+  background: transparent;
+  border-radius: 4px;
+  padding: 5px 7px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: wrap;
+  text-align: left;
+  min-height: 32px;
+  font-size: 12.5px;
+}
+.people-cell:hover:not(:disabled),
+.dropdown-cell:hover:not(:disabled),
+.timeline-cell:hover:not(:disabled) { border-color: var(--line); background: var(--ground); }
+.people-cell:disabled, .dropdown-cell:disabled, .timeline-cell:disabled { cursor: default; }
+
+.date-cell { display: block; position: relative; }
+.date-cell input {
+  width: 100%;
+  border: 1px solid transparent;
+  background: transparent;
+  border-radius: 4px;
+  padding: 6px 7px;
+  font-size: 12.5px;
+  color: transparent;
+}
+.date-cell input:hover:not(:disabled) { border-color: var(--line); background: var(--ground); }
+.date-cell input:focus { color: var(--ink); background: var(--ground); border-color: var(--accent); outline: none; }
+.date-shown {
+  position: absolute;
+  left: 8px; top: 50%;
+  transform: translateY(-50%);
+  pointer-events: none;
+  font-size: 12.5px;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-soft);
+}
+.date-cell input:focus + .date-shown { display: none; }
+.date-cell.overdue .date-shown { color: var(--c-red); font-weight: 600; }
+.date-cell.soon .date-shown { color: var(--c-amber); font-weight: 600; }
+
+.number-cell { display: flex; align-items: center; gap: 7px; }
+.bar-track {
+  flex: 1;
+  min-width: 40px;
+  height: 6px;
+  background: var(--surface-3);
+  border-radius: 100px;
+  overflow: hidden;
+}
+.bar-fill { display: block; height: 100%; background: var(--accent); border-radius: 100px; }
+.number-input {
+  width: 52px;
+  border: 1px solid transparent;
+  background: transparent;
+  border-radius: 4px;
+  padding: 5px 4px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  font-size: 12.5px;
+}
+.number-input:hover:not(:disabled) { border-color: var(--line); }
+.number-input:focus { background: var(--ground); border-color: var(--accent); outline: none; }
+.unit { font-size: 11px; color: var(--muted); }
+
+.checkbox-cell { display: flex; justify-content: center; }
+.checkbox-cell input { width: 15px; height: 15px; accent-color: var(--accent); }
+
+.link-cell { display: flex; align-items: center; gap: 5px; }
+.link-cell input {
+  flex: 1;
+  min-width: 0;
+  border: 1px solid transparent;
+  background: transparent;
+  border-radius: 4px;
+  padding: 5px 6px;
+  font-size: 12.5px;
+}
+.link-cell input:hover:not(:disabled) { border-color: var(--line); }
+.link-cell input:focus { background: var(--ground); border-color: var(--accent); outline: none; }
+.link-open { color: var(--accent); text-decoration: none; font-size: 13px; }
+
+.text-cell {
+  width: 100%;
+  border: 1px solid transparent;
+  background: transparent;
+  border-radius: 4px;
+  padding: 6px 7px;
+  font-size: 12.5px;
+}
+.text-cell:hover:not(:disabled) { border-color: var(--line); }
+.text-cell:focus { background: var(--ground); border-color: var(--accent); outline: none; }

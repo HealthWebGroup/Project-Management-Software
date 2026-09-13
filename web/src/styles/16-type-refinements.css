@@ -1,0 +1,50 @@
+/* =====================================================================
+   Typography
+   ---------------------------------------------------------------------
+   Inter for everything readable — the client's own choice, from the
+   palette tool they picked the colours in. Paired with JetBrains Mono for
+   anything countable: dates, counts, timers, codes. Inter's own figures
+   are proportional, and a column of them in a dense table does not line
+   up, which is the entire reason a second face is here at all.
+
+   Inter is a narrow-ish face with generous spacing built in, so the
+   tracking below is much lighter than the previous grotesque needed.
+   ===================================================================== */
+
+.tnum,
+.count,
+.board-count,
+.group-count,
+.lane-count,
+.client-count,
+.project-count,
+.kpi .v,
+.legend-value,
+.date-shown,
+.cmdk-mark,
+.qa-hint,
+.keyhint kbd,
+.cmdk kbd,
+.cmdk-esc {
+  letter-spacing: -0.01em;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Uppercase eyebrows need tracking opened up, not closed: small caps set
+   solid are the one place Inter reads as cramped. */
+.grid th,
+.cmdk-group,
+.sens,
+.nav-head,
+.kpi .k {
+  letter-spacing: 0.07em;
+}
+
+/* Inter tightens well at display sizes and badly at body sizes. Only the
+   headings get negative tracking. */
+h1, h2,
+.board-head h1,
+.kpi .v {
+  letter-spacing: -0.02em;
+}
+.group-head h2 { letter-spacing: 0.04em; }

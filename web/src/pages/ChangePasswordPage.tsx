@@ -1,3 +1,7 @@
+/**
+ * Forced password change, for the local password path only. Access accounts
+ * never see it - there is no password to change.
+ */
 import { useState } from 'react'
 import { Navigate, useNavigate } from 'react-router-dom'
 import { api, ApiError } from '../lib/api'

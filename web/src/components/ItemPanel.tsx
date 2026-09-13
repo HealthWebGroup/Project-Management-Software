@@ -1,3 +1,11 @@
+/**
+ * The detail panel that slides in when you open an item: its cells, its
+ * history, and the update thread.
+ *
+ * Cell edits are reported upward through onCellChange rather than written
+ * here, so the board and the panel never hold two different ideas of the
+ * same value.
+ */
 import { useEffect, useState } from 'react'
 import { api, ApiError } from '../lib/api'
 import type { BoardDetail, CellValue, ItemDetail } from '../lib/types'

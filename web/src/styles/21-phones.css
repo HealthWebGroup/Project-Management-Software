@@ -1,0 +1,227 @@
+/* =====================================================================
+   Phones
+   ---------------------------------------------------------------------
+   Not "does not break" — usable. Three things were actually wrong at
+   390px: the board table was clipped mid-word with no way to scroll to
+   the rest, the navigation wrapped "Team & time" over three lines and
+   pushed "People" off the edge, and every tap target was 25-28px when a
+   finger needs about 44.
+
+   The board is the interesting one. A table with six columns cannot be
+   made to fit a phone; squeezing it produces columns too narrow to read
+   and a horizontal scrollbar nobody finds. So below 700px it stops being
+   a table: each row becomes a card, each cell a labelled line. Same
+   markup, same data, same editing — the cells carry their column name in
+   `data-label`, and the layout reads it back.
+   ===================================================================== */
+
+@media (max-width: 700px) {
+
+  /* ---- the board, as cards ---------------------------------------- */
+
+  .grid-scroll { overflow-x: visible; border: none; background: transparent; box-shadow: none; }
+  .grid, .grid tbody, .grid tr, .grid td { display: block; width: auto; }
+
+  /* The header row has nowhere to go once cells are stacked; each cell
+     carries its own label instead. Kept in the accessibility tree. */
+  .grid thead {
+    position: absolute;
+    width: 1px; height: 1px;
+    margin: -1px; padding: 0;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+    border: 0;
+  }
+
+  .grid tbody tr {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    box-shadow: var(--e1);
+    margin-bottom: 8px;
+    padding: 4px 2px 6px;
+    overflow: hidden;
+  }
+  /* Zebra striping is meaningless once rows are separate cards. */
+  .grid tbody tr:nth-child(even) { background: var(--surface); }
+
+  .grid td {
+    border-bottom: 1px solid var(--line-soft);
+    padding: 7px 12px;
+    height: auto;
+    min-height: 40px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .grid tbody tr td:last-child { border-bottom: none; }
+
+  /* The label, drawn from the column name the cell was given. */
+  .grid td[data-label]::before {
+    content: attr(data-label);
+    flex: none;
+    width: 86px;
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 9.5px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  .grid td[data-label] > * { flex: 1; min-width: 0; }
+
+  /* The title is the card's heading, so it gets no label and more weight. */
+  .grid td.col-item {
+    display: flex;
+    padding: 10px 12px;
+    background: var(--surface-2);
+    border-bottom: 1px solid var(--line);
+  }
+  .grid td.col-item::before { display: none; }
+  .item-title { font-size: 15px; line-height: 1.35; }
+
+  .grid td.col-actions { justify-content: flex-end; border-bottom: none; padding-top: 4px; }
+  .grid td.col-actions::before { display: none; }
+  /* Row actions are hover-only on a desktop; there is no hover here. */
+  .grid tbody tr .open-item,
+  .grid tbody tr .row-delete { opacity: .8; }
+
+  .col-item, .grid td, .grid th { width: auto !important; min-width: 0 !important; }
+
+  /* ---- navigation -------------------------------------------------- */
+
+  /* The text nav wrapped over three lines and still lost its last item.
+     The drawer already lists everything; the top bar keeps only what a
+     thumb needs at the top of the screen. */
+  .topnav { display: none; }
+  .keyhint { display: none; }
+
+  .topbar {
+    gap: 8px;
+    padding: 8px 12px;
+    flex-wrap: nowrap;
+  }
+  .client-btn { max-width: 42vw; }
+  .client-name-btn, .client-btn span:not(.client-code) {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  /* ---- the board header -------------------------------------------- */
+
+  .board-head { padding: 10px 12px 9px; gap: 8px; }
+  .board-title-row { flex-wrap: wrap; gap: 8px; }
+  .board-head h1 { font-size: 17px; }
+  .board-views { width: 100%; }
+  .board-views button { flex: 1; padding: 9px 8px; }
+  .board-tools { gap: 6px; }
+  .board-tools .search { min-width: 0; flex: 1 1 100%; }
+  .board-scroll { padding: 12px; }
+
+  /* ---- touch targets ----------------------------------------------- */
+
+  .client-link, .project-link { min-height: 42px; }
+  .client-twist { width: 34px; height: 42px; }
+  .btn, .btn.small { min-height: 40px; }
+  .status-cell, .people-cell, .dropdown-cell, .timeline-cell { min-height: 40px; }
+  .date-cell input { height: 40px; }
+  .quick-add { height: 44px; }
+  .topnav a, .menu-btn { min-height: 42px; }
+
+  /* ---- pages -------------------------------------------------------- */
+
+  .page { padding: 12px; }
+  .kpi-row { grid-template-columns: repeat(2, 1fr); gap: 8px; }
+  .kpi-row > :last-child:nth-child(odd) { grid-column: 1 / -1; }
+  .client-grid-2 { grid-template-columns: 1fr; }
+  .page-head { flex-wrap: wrap; gap: 10px; }
+  h1 { font-size: 22px; }
+
+  /* A dialog on a phone is a sheet: full width, anchored to the bottom,
+     where a thumb can reach it. */
+  .dialog {
+    max-width: 100%;
+    width: 100%;
+    margin: 0;
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+    max-height: 88vh;
+  }
+  .dialog-scrim { align-items: flex-end; padding: 0; }
+
+  .cmdk-scrim { padding: 8vh 12px 12px; }
+}
+
+/* Below 430px the cell labels eat too much of the line. */
+@media (max-width: 430px) {
+  .grid td[data-label]::before { width: 70px; font-size: 9px; }
+  .kpi-row { grid-template-columns: 1fr 1fr; }
+}
+
+/* --------------------------------------------- phone fixes, second pass */
+
+@media (max-width: 700px) {
+  /* The floating menu button sat on top of the client switcher. On a phone
+     it loses its label and becomes a square the width of a thumb, and the
+     bar reserves exactly that much room rather than guessing. */
+  .menu-btn {
+    top: 8px;
+    left: 8px;
+    width: 42px;
+    height: 42px;
+    padding: 0;
+    justify-content: center;
+    border-radius: var(--radius);
+    gap: 0;
+  }
+  .menu-btn .menu-btn-label { display: none; }
+  .topbar { padding-left: 58px; }
+  .board-head { padding: 10px 12px 9px; }
+  .board-scroll { padding: 12px 12px 40px; }
+
+  /* The item title is an <input>: it cannot wrap, so it has to be given
+     the whole width or it clips mid-word — which is how a domain name
+     ended up as "healthwebgroup.com renewa". */
+  .grid td.col-item { flex-wrap: wrap; gap: 4px 8px; }
+  .grid td.col-item > .item-cell { flex: 1 1 100%; min-width: 0; }
+  .item-cell { flex-wrap: wrap; }
+  .item-title { flex: 1 1 100%; min-width: 0; min-height: 40px; }
+  .open-item {
+    flex: none;
+    min-height: 34px;
+    padding: 6px 10px;
+    font-size: 11px;
+    opacity: 1;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-sm);
+  }
+
+  /* Everything a finger has to hit. 21px was the row timer and the delete
+     cross; both sit next to each other, which is the worst combination. */
+  .row-actions { gap: 6px; }
+  .row-timer, .row-delete {
+    min-width: 38px;
+    min-height: 38px;
+    display: inline-grid;
+    place-items: center;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-sm);
+    font-size: 14px;
+  }
+  .qa-input { min-height: 40px; }
+  .density-toggle { min-height: 38px; padding: 6px 11px; }
+  .toggle { min-height: 38px; }
+  .toggle input[type='checkbox'] { width: 20px; height: 20px; }
+  .grid td input[type='checkbox'] { width: 22px; height: 22px; }
+  .search { min-height: 40px; }
+}
+
+@media (max-width: 700px) {
+  /* The last few. Checkboxes below 24px are the hardest thing on a phone
+     to hit accurately — they are small by default in every browser and
+     nothing resizes them for you. */
+  .bell, .tasks-btn { min-width: 40px; min-height: 40px; }
+  .open-item { min-height: 38px; }
+  input[type='checkbox'] { width: 22px; height: 22px; }
+  .toggle input[type='checkbox'] { width: 22px; height: 22px; }
+}

@@ -1,0 +1,74 @@
+/* =====================================================================
+   The travelling highlight
+   ---------------------------------------------------------------------
+   One shape that moves, rather than one per item fading in and out. The
+   pill is a sibling of the items, sitting behind them, positioned from
+   the measured box of whichever is active.
+
+   The items themselves keep no background of their own when active —
+   if they did, the pill would slide out from underneath a duplicate and
+   the whole effect would read as a glitch.
+   ===================================================================== */
+
+.slider { position: relative; }
+
+.slider-pill {
+  position: absolute;
+  left: 0;
+  top: 0;
+  z-index: 0;
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  box-shadow: var(--e1), var(--lip);
+  pointer-events: none;
+  /* No transition until the component says it has measured once, so the
+     pill never slides in from the corner on first paint. */
+  transition: none;
+}
+.slider-pill.glide {
+  transition:
+    transform var(--glide) var(--spring),
+    width var(--glide) var(--spring),
+    height var(--glide) var(--spring);
+}
+
+/* Everything real sits above the pill. */
+.slider > :not(.slider-pill) { position: relative; z-index: 1; }
+
+/* --- the board's view switcher ------------------------------------- */
+
+.board-views {
+  display: inline-flex;
+  gap: 2px;
+  padding: 2px;
+  background: var(--surface-2);
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius-sm);
+  flex: none;
+  box-shadow: inset 0 1px 2px color-mix(in srgb, var(--ink) 7%, transparent);
+}
+.board-views button {
+  border: none;
+  background: transparent;
+  padding: 4px 12px;
+  border-radius: 4px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--muted);
+  cursor: pointer;
+  transition: color var(--fast) var(--ease);
+}
+.board-views button:hover { color: var(--ink); }
+.board-views button.on { background: transparent; color: var(--accent-ink); box-shadow: none; }
+
+/* --- the top navigation --------------------------------------------- */
+
+.topnav .slider-pill { background: var(--accent-soft); box-shadow: none; }
+.topnav a.on { background: transparent; color: var(--accent-ink); }
+
+/* --- reduced motion --------------------------------------------------
+   The pill still moves — a highlight that stayed put would leave no
+   visible selection at all — it simply arrives rather than travels. */
+@media (prefers-reduced-motion: reduce) {
+  .slider-pill.glide { transition: none; }
+}

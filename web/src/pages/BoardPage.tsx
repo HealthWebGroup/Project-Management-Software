@@ -1,3 +1,10 @@
+/**
+ * One board: its groups, rows and cells, with the table, kanban and timeline
+ * views over the same data.
+ *
+ * Cell edits are applied locally first and then sent, so typing never waits
+ * for the network. A failed write puts the old value back and says so.
+ */
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { api, ApiError } from '../lib/api'

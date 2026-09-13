@@ -1,3 +1,11 @@
+/**
+ * The landing page once you are signed in: what is due, what is at risk,
+ * where the hours went, and who is online.
+ *
+ * Everything here comes from one /api/dashboard call. That is deliberate:
+ * D1 allows a limited number of queries per request, so this page asks once
+ * and the Worker does the joining.
+ */
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { api } from '../lib/api'

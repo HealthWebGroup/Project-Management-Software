@@ -1,0 +1,605 @@
+/* =====================================================================
+   Design layer
+   Written after the component rules on purpose: these are the surfaces
+   that carry the look, and keeping them together means the material
+   decisions — depth, radius, motion — read as one set rather than being
+   scattered through five hundred lines.
+   ===================================================================== */
+
+/* ---------------------------------------------------- headline numbers */
+
+/**
+ * The five figures at the top of the dashboard. These are the point of
+ * that page, so they get the display face and real size — everywhere else
+ * in the app, numbers stay in the mono face at body size.
+ *
+ * Severity is carried by form as well as colour: a tinted ground, a
+ * coloured rule down the left edge, and the number itself changing hue.
+ * Colour alone would fail the people who most need to see "overdue".
+ */
+.kpi {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 16px 18px 15px;
+  background: var(--surface);
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--e1), var(--lip);
+  overflow: hidden;
+  transition: transform var(--base) var(--ease), box-shadow var(--base) var(--ease);
+}
+.kpi:hover { transform: translateY(-2px); box-shadow: var(--e2), var(--lip); }
+.kpi::before {
+  content: '';
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: 3px;
+  background: var(--accent-hot);
+  opacity: .5;
+}
+.kpi .k {
+  font-size: 9.5px;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.kpi .v {
+  font-family: 'Inter', 'Segoe UI', sans-serif;
+  font-size: 34px;
+  font-weight: 700;
+  line-height: 1.05;
+  letter-spacing: -0.035em;
+  color: var(--ink);
+  margin: 3px 0 1px;
+}
+.kpi .d { font-size: 12px; color: var(--muted); }
+
+.kpi.alert { background: var(--c-red-bg); border-color: color-mix(in srgb, var(--c-red) 28%, transparent); }
+.kpi.alert::before { background: var(--c-red); opacity: 1; }
+.kpi.alert .v, .kpi.alert .k { color: var(--c-red); }
+.kpi.alert .d { color: color-mix(in srgb, var(--c-red) 78%, var(--ink)); }
+
+.kpi.warnk { background: var(--c-amber-bg); border-color: color-mix(in srgb, var(--c-amber) 28%, transparent); }
+.kpi.warnk::before { background: var(--c-amber); opacity: 1; }
+.kpi.warnk .v, .kpi.warnk .k { color: var(--c-amber); }
+.kpi.warnk .d { color: color-mix(in srgb, var(--c-amber) 78%, var(--ink)); }
+
+.kpi-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(184px, 1fr)); gap: 12px; }
+.kpi-row .kpi { border: 1px solid var(--line-soft); }
+.kpi-row .kpi.alert { border-color: color-mix(in srgb, var(--c-red) 28%, transparent); }
+.kpi-row .kpi.warnk { border-color: color-mix(in srgb, var(--c-amber) 28%, transparent); }
+
+/* ------------------------------------------------------------- surfaces */
+
+.dash-block,
+.client-card,
+.person-card,
+.online-card,
+.grid-scroll,
+.tl-scroll,
+.tasks-panel,
+.rule-builder {
+  border-radius: var(--radius-lg);
+}
+
+.dash-block {
+  background: var(--surface);
+  border: 1px solid var(--line-soft);
+  box-shadow: var(--e1), var(--lip);
+  padding: 18px 20px 20px;
+  gap: 16px;
+}
+.dash-head h2 {
+  font-family: 'Inter', 'Segoe UI', sans-serif;
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.client-card, .person-card, .online-card {
+  background: var(--surface);
+  border: 1px solid var(--line-soft);
+  box-shadow: var(--e1), var(--lip);
+  transition: transform var(--base) var(--ease), box-shadow var(--base) var(--ease),
+              border-color var(--base) var(--ease);
+}
+.client-card:hover, .person-card:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--e2), var(--lip);
+  border-color: color-mix(in srgb, var(--accent) 32%, var(--line));
+}
+
+.grid-scroll { box-shadow: var(--e1); border-color: var(--line-soft); }
+
+.page-head h1 {
+  font-family: 'Inter', 'Segoe UI', sans-serif;
+  font-size: 28px;
+  font-weight: 700;
+  letter-spacing: -0.032em;
+  line-height: 1.12;
+}
+
+/* ------------------------------------------------------------- overlays */
+
+.scrim, .card-menu-scrim, .sidebar-scrim {
+  animation: fade-in var(--fast) var(--ease) both;
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
+}
+
+/* A dialog is placed, not pasted: it comes up from slightly below with a
+   touch of overshoot on the curve. */
+.dialog {
+  animation: pop-in var(--base) var(--out) both;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--e3), var(--lip);
+  border-color: var(--line-soft);
+}
+.panel, .tasks-panel { animation: slide-left var(--base) var(--out) both; box-shadow: var(--e3); }
+.client-menu, .bell-panel, .popover, .card-menu-list {
+  animation: pop-in var(--fast) var(--out) both;
+  border-radius: var(--radius);
+  box-shadow: var(--e3), var(--lip);
+}
+
+.dialog-head h2, .panel-head h2 {
+  font-family: 'Inter', 'Segoe UI', sans-serif;
+  font-weight: 700;
+  letter-spacing: -0.022em;
+}
+
+/* --------------------------------------------------------------- kanban */
+
+.lane {
+  border-radius: var(--radius-lg);
+  transition: background-color var(--fast) var(--ease), box-shadow var(--fast) var(--ease);
+}
+.lane.over {
+  box-shadow: 0 0 0 2px var(--accent-hot), var(--e2);
+  background: var(--accent-soft);
+}
+.card {
+  border-radius: var(--radius);
+  box-shadow: var(--e1), var(--lip);
+  transition: transform var(--fast) var(--ease), box-shadow var(--fast) var(--ease),
+              border-color var(--fast) var(--ease);
+}
+.card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--e2), var(--lip);
+  border-color: color-mix(in srgb, var(--accent) 30%, var(--line));
+}
+/* A card being dragged tilts. It is a small thing and it makes the whole
+   interaction feel physical rather than notional. */
+.card.dragging {
+  opacity: .9;
+  transform: rotate(-1.6deg) scale(1.02);
+  box-shadow: var(--e3);
+  cursor: grabbing;
+}
+
+.segmented {
+  padding: 3px;
+  background: var(--surface-2);
+  border: 1px solid var(--line-soft);
+  border-radius: 100px;
+}
+.segmented button { border-radius: 100px; transition: all var(--fast) var(--ease); }
+.segmented button.on { box-shadow: var(--e1), var(--lip); }
+
+/* ------------------------------------------------------------- timeline */
+
+.tl-scroll { box-shadow: var(--e1); border-color: var(--line-soft); }
+
+/* Bars draw themselves in from the left on first paint — the plan
+   arriving rather than being already there. */
+.tl-bar {
+  animation: draw-bar var(--slow) var(--out) both;
+  transform-origin: left center;
+}
+@keyframes draw-bar {
+  from { opacity: 0; transform: translateY(-50%) scaleX(.4); }
+  to   { opacity: 1; transform: translateY(-50%) scaleX(1); }
+}
+.tl-bar:hover { filter: brightness(1.04) saturate(1.1); }
+.tl-bar.dragging { animation: none; }
+
+/* Today is the one line on the chart that moves by itself, so it gets the
+   brass and a soft glow. */
+.tl-today {
+  background: var(--brass);
+  box-shadow: 0 0 12px 1px color-mix(in srgb, var(--brass) 55%, transparent);
+  opacity: .9;
+}
+
+.tl-zoom { padding: 3px; border-radius: 100px; border: 1px solid var(--line-soft); }
+.tl-zoom button { border-radius: 100px; }
+.tl-zoom button.on { box-shadow: var(--e1), var(--lip); }
+
+/* ----------------------------------------------------------- the bell */
+
+.bell { transition: transform var(--fast) var(--ease), border-color var(--fast) var(--ease), color var(--fast) var(--ease); }
+.bell:hover { transform: translateY(-1px); }
+.bell:active { transform: scale(.94); }
+.bell-badge { animation: pop-in var(--base) var(--out) both; }
+.bell.has-unread svg { animation: swing 4.5s var(--ease) infinite; transform-origin: 50% 15%; }
+@keyframes swing {
+  0%, 82%, 100% { transform: rotate(0); }
+  86% { transform: rotate(9deg); }
+  90% { transform: rotate(-7deg); }
+  94% { transform: rotate(4deg); }
+}
+
+.tasks-btn, .bell {
+  transition: transform var(--fast) var(--ease), box-shadow var(--fast) var(--ease),
+              border-color var(--fast) var(--ease), color var(--fast) var(--ease);
+}
+.tasks-btn:hover { transform: translateY(-1px); box-shadow: var(--e2); }
+
+/* --------------------------------------------------------- loading state */
+
+/**
+ * A shimmering block instead of the word "Loading".
+ *
+ * Any element with the `.muted` class whose text is a loading message is
+ * still just text; this is for the places that can show the shape of what
+ * is coming. Used by the board and dashboard skeletons.
+ */
+.skeleton {
+  position: relative;
+  overflow: hidden;
+  background: var(--surface-2);
+  border-radius: var(--radius);
+  color: transparent !important;
+}
+.skeleton::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    color-mix(in srgb, var(--surface) 85%, transparent) 45%,
+    transparent 90%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.4s linear infinite;
+}
+
+/* ---------------------------------------------------------- status cells */
+
+.status-cell, .people-cell, .date-cell, .text-cell, .number-input, .link-cell input {
+  border-radius: var(--radius-sm);
+  transition: background-color var(--fast) var(--ease), box-shadow var(--fast) var(--ease);
+}
+.status-cell { font-weight: 600; }
+.status-cell:not(:disabled):hover { filter: brightness(.97); }
+
+.popover-row { transition: background-color var(--fast) var(--ease), padding-left var(--fast) var(--ease); }
+.popover-row:hover { padding-left: 14px; }
+
+/* ------------------------------------------------------------ dark tune */
+
+/* On the dark ground the glass panels need a touch more separation than
+   the shared token gives them, or the sidebar melts into the wash. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) .sidebar,
+  :root:not([data-theme='light']) .main {
+    border-color: color-mix(in srgb, var(--line) 90%, transparent);
+  }
+  :root:not([data-theme='light']) body::after { opacity: .3; }
+}
+:root[data-theme='dark'] .sidebar,
+:root[data-theme='dark'] .main {
+  border-color: color-mix(in srgb, var(--line) 90%, transparent);
+}
+:root[data-theme='dark'] body::after { opacity: .3; }
+
+/* ----------------------------------------------------------- responsive */
+
+@media (max-width: 900px) {
+  .shell { padding: 0; gap: 0; grid-template-columns: 1fr; }
+  .sidebar, .main { border-radius: 0; border: none; }
+  .main { border-left: none; }
+  .kpi .v { font-size: 28px; }
+  .board-head h1 { font-size: 22px; }
+}
+
+/* ------------------------------------------------------------ sign-in */
+
+/**
+ * Two halves: what this is, and the way in.
+ *
+ * The left half exists because this is the first screen anyone sees, and a
+ * lone input box floating in a field says nothing about the product behind
+ * it. It is decorative in the strict sense — `aria-hidden`, skipped by a
+ * screen reader, gone below 860px — so nothing needed to sign in lives there.
+ */
+.auth-split {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: minmax(0, 1.05fr) minmax(360px, 420px);
+  align-items: stretch;
+  gap: 0;
+  width: min(1040px, 100%);
+  background: var(--glass);
+  backdrop-filter: blur(24px) saturate(150%);
+  -webkit-backdrop-filter: blur(24px) saturate(150%);
+  border: 1px solid color-mix(in srgb, var(--line) 60%, transparent);
+  border-radius: 20px;
+  box-shadow: var(--e3), var(--lip);
+  overflow: hidden;
+  animation: rise-in var(--slow) var(--out) both;
+}
+
+.auth-pitch {
+  position: relative;
+  padding: 44px 44px 40px;
+  display: flex;
+  flex-direction: column;
+  gap: 26px;
+  color: #EAF6F6;
+  background:
+    radial-gradient(28rem 22rem at 18% 10%, color-mix(in srgb, var(--accent-hot) 55%, transparent), transparent 65%),
+    linear-gradient(150deg, #0A4B55, #062A33 62%, #041D24);
+  overflow: hidden;
+}
+
+/* Depth contours. Concentric rings, the way a chart shows a shoaling
+   seabed — the one place the reference is drawn rather than implied. */
+.auth-pitch::before {
+  content: '';
+  position: absolute;
+  right: -22%;
+  bottom: -34%;
+  width: 34rem;
+  height: 34rem;
+  border-radius: 50%;
+  background: repeating-radial-gradient(
+    circle,
+    transparent 0 26px,
+    rgba(255, 255, 255, .085) 26px 27.5px
+  );
+  animation: drift 26s ease-in-out infinite alternate;
+  pointer-events: none;
+}
+@keyframes drift {
+  from { transform: translate3d(0, 0, 0) scale(1); }
+  to   { transform: translate3d(-24px, -18px, 0) scale(1.06); }
+}
+
+.auth-pitch .auth-brand h1 { color: #fff; font-size: 21px; }
+.auth-pitch .auth-brand p { color: color-mix(in srgb, var(--accent-hot) 75%, #fff); }
+.auth-pitch .auth-mark {
+  background: rgba(255, 255, 255, .12);
+  border: 1px solid rgba(255, 255, 255, .22);
+  box-shadow: none;
+  backdrop-filter: blur(6px);
+}
+
+.auth-lede {
+  position: relative;
+  margin: 0;
+  font-family: 'Inter', 'Segoe UI', sans-serif;
+  font-size: 25px;
+  font-weight: 600;
+  line-height: 1.22;
+  letter-spacing: -0.028em;
+  color: #fff;
+  max-width: 22ch;
+  text-wrap: balance;
+}
+
+.auth-points {
+  position: relative;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 11px;
+  font-size: 13.5px;
+  color: rgba(234, 246, 246, .82);
+}
+.auth-points li { display: flex; align-items: baseline; gap: 12px; }
+/* Numbered because these really are the three things, in the order the
+   interface presents them — not because numbers look tidy. */
+.auth-points span {
+  font-family: 'JetBrains Mono', ui-monospace, 'Cascadia Mono', Consolas, monospace;
+  font-size: 10px;
+  letter-spacing: .1em;
+  color: var(--accent-hot);
+  flex: none;
+}
+
+.auth-sign {
+  position: relative;
+  margin: auto 0 0;
+  font-family: 'JetBrains Mono', ui-monospace, 'Cascadia Mono', Consolas, monospace;
+  font-size: 10px;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: rgba(234, 246, 246, .45);
+}
+
+/* Inside the split the form panel is a plain surface: the glass and the
+   shadow already belong to the container around it. */
+.auth-split .auth-card {
+  max-width: none;
+  background: var(--surface);
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  padding: 44px 40px;
+  justify-content: center;
+  animation: none;
+}
+.auth-brand.compact .auth-mark { display: none; }
+.auth-brand.compact h1 { font-size: 22px; }
+
+@media (max-width: 860px) {
+  .auth-split { grid-template-columns: 1fr; width: min(430px, 100%); }
+  .auth-pitch { display: none; }
+  .auth-brand.compact .auth-mark { display: inline-grid; }
+  .auth-split .auth-card { padding: 34px 30px; }
+}
+
+/* ---------------------------------------------------- native control polish */
+
+/**
+ * The browser's own date-picker button.
+ *
+ * Unstyled it renders as a small black glyph that belongs to no design and
+ * sits at a different weight from every other mark in the row. Tinting it
+ * to the muted token and giving it a hover state makes it part of the table
+ * rather than an artefact in it.
+ */
+.date-cell input[type='date']::-webkit-calendar-picker-indicator,
+.mini-field input[type='date']::-webkit-calendar-picker-indicator {
+  opacity: .38;
+  cursor: pointer;
+  filter: grayscale(1);
+  transition: opacity var(--fast) var(--ease);
+}
+.date-cell input[type='date']:hover::-webkit-calendar-picker-indicator,
+.mini-field input[type='date']:hover::-webkit-calendar-picker-indicator { opacity: .75; }
+:root[data-theme='dark'] input[type='date']::-webkit-calendar-picker-indicator { filter: invert(1) grayscale(1); }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) input[type='date']::-webkit-calendar-picker-indicator {
+    filter: invert(1) grayscale(1);
+  }
+}
+
+/* A milestone reads as a marker on the line, not a small dark chip. */
+.tl-bar.milestone {
+  background: var(--surface);
+  box-shadow: var(--e1);
+}
+.tl-bar.milestone::before { box-shadow: 0 0 0 2px var(--surface); }
+
+/* Checkboxes and radios take the accent rather than the browser's blue. */
+input[type='checkbox'], input[type='radio'] { accent-color: var(--accent); }
+
+/* The add-item row reads as an invitation rather than a leftover. */
+.add-row, .task-add-row {
+  transition: border-color var(--fast) var(--ease), color var(--fast) var(--ease),
+              background-color var(--fast) var(--ease);
+}
+.add-row:hover { border-color: var(--accent-hot); color: var(--accent-ink); background: var(--accent-soft); }
+
+/* ------------------------------------------------------- first-run setup */
+
+/**
+ * The screen a freshly deployed installation shows until Cloudflare Access
+ * is in front of it. Same materials as the rest of the app, so it reads as
+ * a step in the product rather than an error page.
+ */
+.setup-page {
+  min-height: 100%;
+  display: grid;
+  place-items: start center;
+  padding: 48px 20px 64px;
+  overflow-y: auto;
+}
+
+.setup-card {
+  width: min(680px, 100%);
+  background: var(--glass);
+  backdrop-filter: blur(24px) saturate(150%);
+  -webkit-backdrop-filter: blur(24px) saturate(150%);
+  border: 1px solid color-mix(in srgb, var(--line) 60%, transparent);
+  border-radius: 20px;
+  box-shadow: var(--e3), var(--lip);
+  padding: 38px 40px 34px;
+  animation: rise-in var(--slow) var(--out) both;
+}
+
+.setup-card h1 {
+  margin: 16px 0 6px;
+  font-size: 27px;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+}
+.setup-lede { margin: 0 0 26px; color: var(--ink-soft); max-width: 62ch; }
+
+.setup-steps {
+  list-style: none;
+  counter-reset: setup;
+  margin: 0 0 26px;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+/* Numbered because this genuinely is a sequence — the AUD tag in step three
+   does not exist until the application in step one does. */
+.setup-steps li {
+  counter-increment: setup;
+  display: grid;
+  grid-template-columns: 30px 1fr;
+  gap: 14px;
+}
+.setup-steps li::before {
+  content: counter(setup);
+  display: grid;
+  place-items: center;
+  width: 30px; height: 30px;
+  border-radius: 9px;
+  background: var(--accent-soft);
+  color: var(--accent-ink);
+  font-family: 'JetBrains Mono', ui-monospace, 'Cascadia Mono', Consolas, monospace;
+  font-size: 12px;
+  font-weight: 600;
+}
+.setup-steps h2 {
+  margin: 4px 0 4px;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: -0.015em;
+}
+.setup-steps p { margin: 0; color: var(--ink-soft); font-size: 13.5px; max-width: 58ch; }
+
+.setup-card code {
+  font-family: 'JetBrains Mono', ui-monospace, 'Cascadia Mono', Consolas, monospace;
+  font-size: 12.5px;
+  background: var(--surface-2);
+  border: 1px solid var(--line-soft);
+  padding: 1px 6px;
+  border-radius: 5px;
+  white-space: nowrap;
+}
+
+.setup-missing {
+  background: var(--c-amber-bg);
+  border-radius: var(--radius-lg);
+  padding: 16px 18px;
+  box-shadow: inset 3px 0 0 var(--c-amber);
+}
+.setup-missing h2 {
+  margin: 0 0 8px;
+  font-family: 'JetBrains Mono', ui-monospace, 'Cascadia Mono', Consolas, monospace;
+  font-size: 10px;
+  letter-spacing: .13em;
+  text-transform: uppercase;
+  color: var(--c-amber);
+}
+.setup-missing ul { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 6px; }
+.setup-missing li { font-size: 13px; color: color-mix(in srgb, var(--c-amber) 80%, var(--ink)); }
+
+.setup-foot {
+  margin: 24px 0 0;
+  padding-top: 18px;
+  border-top: 1px solid var(--line-soft);
+  font-size: 12.5px;
+  color: var(--muted);
+}
+
+@media (max-width: 560px) {
+  .setup-card { padding: 28px 22px; border-radius: 16px; }
+  .setup-card code { white-space: normal; word-break: break-all; }
+}

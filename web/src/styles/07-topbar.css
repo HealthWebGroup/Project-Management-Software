@@ -1,0 +1,212 @@
+/* =====================================================================
+   Top bar, client switcher, running timer
+   ===================================================================== */
+
+.main-body { flex: 1; min-height: 0; overflow: hidden; display: flex; flex-direction: column; }
+
+.topbar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 10px 20px;
+  background: color-mix(in srgb, var(--surface) 62%, transparent);
+  backdrop-filter: blur(18px) saturate(140%);
+  -webkit-backdrop-filter: blur(18px) saturate(140%);
+  border-bottom: 1px solid var(--line-soft);
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  flex: none;
+  min-height: 58px;
+  position: relative;
+  z-index: 20;
+}
+
+.client-switch { position: relative; flex: none; }
+
+.client-btn {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 6px 12px 6px 7px;
+  border: 1px solid var(--line);
+  border-radius: 100px;
+  background: var(--ground);
+  cursor: pointer;
+  max-width: 320px;
+}
+.client-btn {
+  transition: border-color var(--fast) var(--ease), box-shadow var(--fast) var(--ease),
+              transform var(--fast) var(--ease);
+}
+.client-btn:hover {
+  border-color: var(--accent-hot);
+  box-shadow: 0 0 0 4px var(--ring);
+}
+.client-btn:active { transform: scale(.99); }
+.client-btn .caret { transition: transform var(--base) var(--out); }
+.client-switch:has(.client-menu) .caret { transform: rotate(180deg); }
+.client-code, .opt-code {
+  display: inline-grid;
+  place-items: center;
+  min-width: 42px;
+  padding: 4px 8px;
+  border-radius: 100px;
+  font-family: 'JetBrains Mono', ui-monospace, 'Cascadia Mono', Consolas, monospace;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: .04em;
+}
+.client-btn.grey .client-code, .opt-code.grey     { background: var(--c-grey-bg); color: var(--c-grey); }
+.client-btn.blue .client-code, .opt-code.blue     { background: var(--c-blue-bg); color: var(--c-blue); }
+.client-btn.green .client-code, .opt-code.green   { background: var(--c-green-bg); color: var(--c-green); }
+.client-btn.amber .client-code, .opt-code.amber   { background: var(--c-amber-bg); color: var(--c-amber); }
+.client-btn.red .client-code, .opt-code.red       { background: var(--c-red-bg); color: var(--c-red); }
+.client-btn.violet .client-code, .opt-code.violet { background: var(--c-violet-bg); color: var(--c-violet); }
+.client-btn.teal .client-code, .opt-code.teal     { background: var(--c-teal-bg); color: var(--c-teal); }
+.client-btn.all .client-code, .opt-code.all       { background: var(--accent-soft); color: var(--accent-ink); }
+
+.client-label {
+  font-weight: 600;
+  font-size: 13.5px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.caret { color: var(--muted); font-size: 10px; }
+
+.client-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  z-index: 50;
+  width: 310px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  box-shadow: var(--shadow);
+  padding: 7px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-height: 420px;
+  overflow-y: auto;
+}
+.client-search {
+  border: 1px solid var(--line);
+  background: var(--ground);
+  border-radius: var(--radius);
+  padding: 7px 10px;
+  margin-bottom: 4px;
+}
+.client-search:focus { border-color: var(--accent); outline: none; }
+
+.client-option {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 7px 8px;
+  border: none;
+  background: transparent;
+  border-radius: var(--radius);
+  cursor: pointer;
+  text-align: left;
+  width: 100%;
+}
+.client-option:hover { background: var(--surface-2); }
+.client-option.on { background: var(--accent-soft); }
+.opt-name { flex: 1; font-size: 13.5px; font-weight: 500; }
+.opt-status {
+  font-family: 'JetBrains Mono', ui-monospace, 'Cascadia Mono', Consolas, monospace;
+  font-size: 9.5px;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.client-none { font-size: 13px; color: var(--muted); padding: 8px; margin: 0; }
+.client-manage {
+  margin-top: 4px;
+  padding: 8px;
+  border-top: 1px solid var(--line-soft);
+  font-size: 12.5px;
+  color: var(--accent-ink);
+  text-decoration: none;
+}
+.client-manage:hover { text-decoration: underline; }
+
+.topnav { display: flex; gap: 2px; }
+.topnav a {
+  position: relative;
+  padding: 7px 13px;
+  border-radius: var(--radius);
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--muted);
+  text-decoration: none;
+  transition: color var(--fast) var(--ease), background-color var(--fast) var(--ease);
+}
+/* The underline that used to mark the active link is gone: the travelling
+   pill does that job now, and two indicators for one state is one too
+   many. Hover keeps no background either, or it competes with the pill
+   as it passes underneath. */
+.topnav a:hover { color: var(--ink); }
+.topnav a.on { color: var(--accent-ink); }
+
+.running-timer {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 5px 6px 5px 12px;
+  border: 1px solid color-mix(in srgb, var(--brass) 45%, transparent);
+  border-radius: 100px;
+  background: var(--brass-soft);
+  max-width: 340px;
+  animation: pop-in var(--base) var(--out) both;
+}
+/* A ring that expands and fades, rather than an opacity blink: it reads as
+   something running, which is exactly what it is reporting. */
+.pulse {
+  position: relative;
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: var(--brass);
+  flex: none;
+}
+.pulse::after {
+  content: '';
+  position: absolute;
+  inset: -3px;
+  border-radius: 50%;
+  border: 1.5px solid var(--brass);
+  animation: ping 1.9s var(--ease) infinite;
+}
+@keyframes ping {
+  0%   { transform: scale(.7); opacity: .9; }
+  70%  { transform: scale(2.1); opacity: 0; }
+  100% { transform: scale(2.1); opacity: 0; }
+}
+.rt-what {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--brass);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.rt-clock {
+  font-family: 'JetBrains Mono', ui-monospace, 'Cascadia Mono', Consolas, monospace;
+  font-size: 13px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--brass);
+}
+.rt-stop {
+  border: none;
+  background: var(--brass);
+  color: #fff;
+  border-radius: 100px;
+  padding: 4px 11px;
+  font-size: 11.5px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.rt-stop:hover { filter: brightness(1.1); }

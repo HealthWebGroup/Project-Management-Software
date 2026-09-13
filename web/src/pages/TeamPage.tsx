@@ -1,3 +1,7 @@
+/**
+ * The team, over time: who is online now, hours by person and client, the
+ * sign-in history, and your own sessions.
+ */
 import { useEffect, useState } from 'react'
 import { api } from '../lib/api'
 import type { OnlineUser, SessionRow, TimeEntry, TimeSummary } from '../lib/types'

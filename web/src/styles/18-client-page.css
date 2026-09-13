@@ -1,0 +1,112 @@
+/* =====================================================================
+   One client, on one page
+   ===================================================================== */
+
+.client-page .page-head { align-items: center; }
+
+.ch-identity { display: flex; align-items: center; gap: 13px; min-width: 0; }
+
+.ch-mark {
+  flex: none;
+  width: 38px; height: 38px;
+  display: grid;
+  place-items: center;
+  border-radius: 9px;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: -0.05em;
+  background: var(--surface-3);
+  color: var(--ink-soft);
+  box-shadow: var(--lip);
+}
+.ch-mark.blue   { background: var(--c-blue-bg);   color: var(--c-blue); }
+.ch-mark.green  { background: var(--c-green-bg);  color: var(--c-green); }
+.ch-mark.amber  { background: var(--c-amber-bg);  color: var(--c-amber); }
+.ch-mark.red    { background: var(--c-red-bg);    color: var(--c-red); }
+.ch-mark.violet { background: var(--c-violet-bg); color: var(--c-violet); }
+.ch-mark.teal   { background: var(--c-teal-bg);   color: var(--c-teal); }
+.ch-mark.grey   { background: var(--c-grey-bg);   color: var(--c-grey); }
+
+/* Projects and team sit side by side: together they answer "who is doing
+   what here", which is the reason to open this page at all. They stack on
+   a narrow screen rather than squeezing to half-columns of ellipsis. */
+.client-grid-2 {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr;
+  gap: 14px;
+  margin-bottom: 14px;
+}
+@media (max-width: 900px) { .client-grid-2 { grid-template-columns: 1fr; } }
+
+.proj-cards { list-style: none; margin: 0; padding: 10px 12px 12px; display: grid; gap: 6px; }
+
+.proj-card {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  grid-template-areas: 'name count' 'desc count';
+  align-items: center;
+  gap: 0 12px;
+  padding: 9px 12px;
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius);
+  background: var(--surface);
+  text-decoration: none;
+  color: var(--ink);
+  transition: border-color var(--fast) var(--ease), box-shadow var(--fast) var(--ease),
+              transform var(--fast) var(--ease);
+}
+.proj-card:hover {
+  border-color: color-mix(in srgb, var(--accent) 40%, var(--line));
+  box-shadow: var(--e1);
+  transform: translateY(-1px);
+}
+.pc-name { grid-area: name; font-weight: 600; font-size: 13.5px; }
+.pc-desc {
+  grid-area: desc;
+  font-size: 12px;
+  color: var(--muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.pc-count {
+  grid-area: count;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 11px;
+  letter-spacing: -0.05em;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.team-rows { list-style: none; margin: 0; padding: 10px 12px 12px; display: grid; gap: 2px; }
+.team-rows li {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 6px 4px;
+  border-bottom: 1px solid var(--line-soft);
+}
+.team-rows li:last-child { border-bottom: none; }
+.tr-name { font-size: 13px; font-weight: 600; }
+.tr-role { font-size: 11.5px; color: var(--muted); text-transform: lowercase; }
+
+.muted.pad { padding: 14px 14px 16px; margin: 0; font-size: 13px; }
+.client-notes { padding: 12px 14px 16px; margin: 0; font-size: 13.5px; color: var(--ink-soft); max-width: 70ch; }
+
+/* A board with nothing in it yet. Quiet, centred, and it says what to do
+   rather than apologising. */
+.board-empty {
+  max-width: 42ch;
+  margin: 48px auto;
+  text-align: center;
+  color: var(--muted);
+}
+.board-empty h2 {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--ink-soft);
+  margin: 0 0 6px;
+}
+.board-empty p { margin: 0; font-size: 13px; line-height: 1.6; }

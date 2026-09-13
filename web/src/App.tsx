@@ -1,3 +1,12 @@
+/**
+ * Every route in the interface, and who is allowed to reach it.
+ *
+ * Protected wraps the signed-in half: while auth is still resolving it shows
+ * the boot state rather than bouncing to the sign-in page, because a flash of
+ * the login screen on every refresh reads as being logged out.
+ *
+ * Shell is the frame (sidebar, top bar); the pages render inside it.
+ */
 import type { ReactElement } from 'react'
 import { Navigate, Route, Routes } from 'react-router-dom'
 import { useAuth } from './state/auth'
