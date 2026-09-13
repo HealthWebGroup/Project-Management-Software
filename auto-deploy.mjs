@@ -127,6 +127,37 @@ function capture(cmd, args) {
   return { code: r.status ?? 1, out: `${r.stdout ?? ''}${r.stderr ?? ''}`.trim() }
 }
 
+// A plain readline echoes whatever is typed, so a token pasted at this
+// prompt by mistake ends up in the scrollback — and in any screenshot of
+// it. Raw mode takes one keypress without echoing, then swallows the rest
+// of a paste so it cannot leak into the prompt that follows.
+async function pressEnter(label) {
+  process.stdout.write(label)
+  if (!process.stdin.isTTY) {
+    process.stdout.write('\n')
+    return
+  }
+  await new Promise((resolve) => {
+    let timer
+    const done = () => {
+      clearTimeout(timer)
+      process.stdin.off('data', onData)
+      process.stdin.setRawMode(false)
+      process.stdin.pause()
+      process.stdout.write('\n')
+      resolve()
+    }
+    const onData = (buf) => {
+      if (buf.includes(3)) process.exit(130) // Ctrl-C
+      clearTimeout(timer)
+      timer = setTimeout(done, 120) // wait out the rest of a paste
+    }
+    process.stdin.setRawMode(true)
+    process.stdin.resume()
+    process.stdin.on('data', onData)
+  })
+}
+
 async function ask(question) {
   const rl = createInterface({ input: process.stdin, output: process.stdout })
   const answer = await rl.question(question)
@@ -139,7 +170,7 @@ const openInBrowser = (url) => {
     process.platform === 'win32' ? ['cmd', ['/c', 'start', '', url]]
     : process.platform === 'darwin' ? ['open', [url]]
     : ['xdg-open', [url]]
-  spawnSync(opener[0], opener[1], { stdio: 'ignore', shell: process.platform === 'win32' })
+  spawnSync(opener[0], opener[1], { stdio: 'ignore' })
 }
 
 console.log(`
@@ -336,16 +367,25 @@ ${c.dim('and go straight into GitHub without passing through anything else.')}
 
   ${c.b('a)')}  Your browser is opening ${c.cyan('Cloudflare → API Tokens')}
   ${c.b('b)')}  ${c.b('Create Token')} → use the ${c.b('"Edit Cloudflare Workers"')} template
-  ${c.b('c)')}  Under Account Resources pick ${c.cyan("Business@healthwebgroup.com's Account")}
-      ${c.dim('Add D1:Edit as well, so migrations can run.')}
+  ${c.b('c)')}  Permissions — it needs all four rows (${c.b('+ Add more')} for each):
+        ${c.cyan('Account  Workers Scripts    Edit')}
+        ${c.cyan('Account  D1                 Edit')}
+        ${c.cyan('Account  Account Settings   Read')}
+        ${c.cyan('Zone     Workers Routes     Edit')}   ${c.dim('← keeps the domain attached')}
+      Account Resources: ${c.cyan("Business@healthwebgroup.com's Account")}
+      Zone Resources:    ${c.cyan('healthwebgroup.com')}
+      ${c.dim('Leave IP filtering and TTL empty — both would stop deploys later.')}
   ${c.b('d)')}  Create it and copy the token. Cloudflare shows it once.
 
-${c.amber('Then paste it at the prompt below. It goes straight into GitHub’s')}
-${c.amber('encrypted store — this window never prints it and never saves it.')}
+${c.amber(c.b('Paste it at the second prompt, the one that says "Paste your secret".'))}
+${c.amber('Not at the first one. The first prompt shows what you type; the')}
+${c.amber('second hides it and hands it straight to GitHub, encrypted.')}
 `)
 
   openInBrowser(url)
-  await ask('Press Enter once you have the token copied… ')
+  await pressEnter(
+    `${c.amber('Do not paste the token here.')} Press Enter and paste at the next prompt… `,
+  )
 
   // gh does the prompting. The value never enters this script's memory,
   // never reaches a variable here, and is not echoed to the terminal.

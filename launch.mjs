@@ -467,7 +467,7 @@ try {
       process.platform === 'win32' ? ['cmd', ['/c', 'start', '', 'https://one.dash.cloudflare.com/']]
       : process.platform === 'darwin' ? ['open', ['https://one.dash.cloudflare.com/']]
       : ['xdg-open', ['https://one.dash.cloudflare.com/']]
-    spawnSync(opener[0], opener[1], { stdio: 'ignore', shell: process.platform === 'win32' })
+    spawnSync(opener[0], opener[1], { stdio: 'ignore' })
   }
 } catch {
   /* no terminal to prompt in — the instructions above are enough */
