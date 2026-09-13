@@ -1,0 +1,22 @@
+# Dependencies and build output
+node_modules/
+dist/
+.wrangler/
+*.tsbuildinfo
+
+# Local secrets. .dev.vars holds a development-only JWT signing key; the real
+# one is a Cloudflare secret and lives nowhere in this repository.
+.dev.vars
+.env
+.env.*
+!.env.example
+
+# Local logs, including the launcher's own transcript
+*.log
+launch-log.txt
+
+# Editor and OS noise
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/

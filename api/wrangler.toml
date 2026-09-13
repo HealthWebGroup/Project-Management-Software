@@ -1,0 +1,71 @@
+name = "workos-api"
+main = "src/index.ts"
+compatibility_date = "2026-08-01"
+compatibility_flags = ["nodejs_compat"]
+
+# Not a secret: this is in every dashboard URL. Stated here so an automated
+# deploy never has to work out which account it is deploying to.
+account_id = "1f547b22b96f44190204427c7b1a21a6"
+
+# A workers.dev address as well as the custom domain. It costs nothing, it
+# works the moment the first deploy finishes, and it is somewhere to check
+# from while DNS for the custom hostname settles. Turn it off once
+# task.healthwebgroup.com is working if you would rather have one door.
+workers_dev = true
+
+# The custom domain is OFF until healthwebgroup.com is an active zone on this
+# Cloudflare account. Leaving it on made the very first deploy fail on a zone
+# error, which is a miserable way to meet a new tool — and it is not needed:
+# Cloudflare Access can protect the workers.dev hostname directly, so the app
+# can be live, signed-in and in real use before DNS is touched at all.
+#
+# When the nameservers have moved and the zone is Active, uncomment these
+# three lines, re-point the Access application at task.healthwebgroup.com, and
+# deploy again. Nothing else changes.
+#
+[[routes]]
+pattern = "task.healthwebgroup.com"
+custom_domain = true
+
+# The built interface ships with the Worker, so one deploy puts both the site
+# and the API on one hostname - no CORS, no second project, no route ordering
+# to get wrong. run_worker_first keeps /api/* going to the code below rather
+# than being answered with index.html by the single-page fallback.
+[assets]
+directory = "../web/dist"
+binding = "ASSETS"
+not_found_handling = "single-page-application"
+run_worker_first = ["/api/*"]
+
+# The daily pass for date-based automations ("three days before the due date,
+# tell whoever owns it"). Cron Triggers are on the free plan. 07:00 UTC, which
+# is 08:00 Irish summer time and 07:00 in winter - before the working day
+# either way. Change the hour here if you would rather it ran later.
+[triggers]
+crons = ["0 7 * * *"]
+
+[[d1_databases]]
+binding = "DB"
+database_name = "workos"
+# Replace with the id printed by:  wrangler d1 create workos
+database_id = "REPLACE_WITH_YOUR_D1_DATABASE_ID"
+migrations_dir = "migrations"
+
+[vars]
+# Your Cloudflare Zero Trust team name, from the Zero Trust dashboard URL
+# https://<team-name>.cloudflareaccess.com
+ACCESS_TEAM_NAME = "bold-lake-7df7"
+# The Application Audience tag from Access → Applications → your app → Overview
+ACCESS_AUD = "56d3e5e82c8852884fceab20d9320369c59dbeab9b6719a82bda3457e215dca8"
+# The first person to sign in with this address becomes an administrator.
+BOOTSTRAP_ADMIN_EMAIL = "business@healthwebgroup.com"
+# Who may have an account here at all. Comma separated, no "@". This repeats
+# the rule in the Access policy on purpose: Access is the front door and can
+# be widened in the dashboard in two clicks, while changing this needs a
+# deploy. The bootstrap administrator above is always allowed regardless.
+ALLOWED_EMAIL_DOMAINS = "healthwebgroup.com"
+# Set to "true" only for local development - see README.
+ALLOW_PASSWORD_LOGIN = "false"
+
+# JWT_SECRET is a secret, not a var. Set it with:
+#   wrangler secret put JWT_SECRET

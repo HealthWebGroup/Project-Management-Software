@@ -1,0 +1,260 @@
+import { Hono } from 'hono'
+import { isManager } from '../access'
+import { isoMinus, newId, now, recordActivity } from '../db'
+import { HttpError } from '../errors'
+import { LIMITS, email, httpUrl, isoDate, list, oneOf, optionalText, readJson, text } from '../validate'
+import type { ClientRole, ClientStatus, Env, Vars } from '../types'
+
+export const clients = new Hono<{ Bindings: Env; Variables: Vars }>()
+
+interface ClientRow {
+  id: string
+  name: string
+  code: string
+  status: ClientStatus
+  colour: string
+  contact_name: string | null
+  contact_email: string | null
+  contact_phone: string | null
+  website: string | null
+  address: string | null
+  notes: string | null
+  started_on: string | null
+}
+
+const STATUSES: ClientStatus[] = ['PROSPECT', 'ACTIVE', 'PAUSED', 'ARCHIVED']
+
+clients.get('/clients', async (c) => {
+  const principal = c.get('principal')
+
+  const [rows, team, counts, minutes] = await Promise.all([
+    c.env.DB.prepare(
+      `select id, name, code, status, colour, contact_name, contact_email, contact_phone,
+              website, address, notes, started_on
+         from client where organisation_id = ? order by name`,
+    ).bind(principal.organisationId).all<ClientRow>(),
+
+    c.env.DB.prepare(
+      `select m.client_id, m.user_id, m.role_on_client, u.full_name, u.job_title
+         from client_member m
+         join app_user u on u.id = m.user_id
+         join client c on c.id = m.client_id
+        where c.organisation_id = ?`,
+    ).bind(principal.organisationId).all<{
+      client_id: string; user_id: string; role_on_client: ClientRole
+      full_name: string; job_title: string | null
+    }>(),
+
+    c.env.DB.prepare(
+      `select client_id, count(*) as n from item
+        where archived = 0 and client_id is not null group by client_id`,
+    ).all<{ client_id: string; n: number }>(),
+
+    c.env.DB.prepare(
+      `select client_id, sum(minutes) as total from time_entry
+        where ended_at is not null and started_at >= ? and client_id is not null
+        group by client_id`,
+    ).bind(isoMinus(30)).all<{ client_id: string; total: number | null }>(),
+  ])
+
+  const countBy = new Map(counts.results.map((r) => [r.client_id, r.n]))
+  const minutesBy = new Map(minutes.results.map((r) => [r.client_id, r.total ?? 0]))
+
+  // The same scoping every other screen applies. Without it this route hands
+  // a member the whole client book - names, contacts, commercial notes and
+  // hours for clients they cannot open a single board of. It is the leak the
+  // dashboard's hours-by-client had, with more fields attached.
+  const seesEveryClient = isManager(principal)
+  const allowed = new Set(principal.clientIds)
+  const visible = seesEveryClient
+    ? rows.results
+    : rows.results.filter((row) => allowed.has(row.id))
+
+  return c.json(
+    visible.map((row) => ({
+      id: row.id,
+      name: row.name,
+      code: row.code,
+      status: row.status,
+      colour: row.colour,
+      contactName: row.contact_name ?? undefined,
+      contactEmail: row.contact_email ?? undefined,
+      contactPhone: row.contact_phone ?? undefined,
+      website: row.website ?? undefined,
+      address: row.address ?? undefined,
+      notes: row.notes ?? undefined,
+      startedOn: row.started_on ?? undefined,
+      // The named point of contact reads first, then everyone else by name.
+      team: team.results
+        .filter((m) => m.client_id === row.id)
+        .sort((a, b) =>
+          a.role_on_client !== b.role_on_client
+            ? a.role_on_client === 'LEAD' ? -1 : 1
+            : a.full_name.localeCompare(b.full_name),
+        )
+        .map((m) => ({
+          userId: m.user_id,
+          fullName: m.full_name,
+          jobTitle: m.job_title ?? undefined,
+          roleOnClient: m.role_on_client,
+        })),
+      openItems: countBy.get(row.id) ?? 0,
+      minutesThisMonth: minutesBy.get(row.id) ?? 0,
+    })),
+  )
+})
+
+clients.post('/clients', async (c) => {
+  const principal = c.get('principal')
+  if (!isManager(principal)) {
+    throw HttpError.forbidden('Only managers and administrators can add clients.')
+  }
+
+  const body = await readJson<Record<string, unknown>>(c.req)
+  const name = text(body.name, 'The client name')
+  const code = text(body.code, 'The client code', 12).toUpperCase()
+  const contactEmail = body.contactEmail ? email(body.contactEmail, 'The contact email') : undefined
+  const website = httpUrl(body.website, 'The website')
+  const notes = optionalText(body.notes, 'Notes', LIMITS.longText)
+  const address = optionalText(body.address, 'The address', LIMITS.shortText)
+  const contactName = optionalText(body.contactName, 'The contact name')
+  const contactPhone = optionalText(body.contactPhone, 'The phone number', 40)
+  const colour = optionalText(body.colour, 'Colour', LIMITS.colour) || 'blue'
+  const startedOn = isoDate(body.startedOn, 'The start date')
+
+  const clash = await c.env.DB
+    .prepare(`select id from client where organisation_id = ? and upper(code) = ?`)
+    .bind(principal.organisationId, code).first<{ id: string }>()
+  if (clash) throw HttpError.badRequest(`Another client already uses the code ${code}.`)
+
+  const status = body.status ? oneOf(body.status, STATUSES, 'Status') : 'ACTIVE'
+
+  const id = newId()
+  await c.env.DB
+    .prepare(
+      `insert into client (id, organisation_id, name, code, status, colour, contact_name,
+                           contact_email, contact_phone, website, address, notes, started_on, created_at)
+       values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    )
+    .bind(
+      id, principal.organisationId, name, code, status, colour,
+      contactName || null, contactEmail || null, contactPhone || null,
+      website || null, address || null, notes || null, startedOn || null, now(),
+    )
+    .run()
+
+  await recordActivity(c.env.DB, {
+    entityType: 'CLIENT', entityId: id, actorId: principal.userId, action: 'CREATED', detail: name,
+  })
+
+  return c.json({
+    id, name, code, status, colour,
+    contactName: contactName || undefined,
+    contactEmail: contactEmail || undefined,
+    contactPhone: contactPhone || undefined,
+    website: body.website || undefined,
+    address: body.address || undefined,
+    notes: body.notes || undefined,
+    startedOn: body.startedOn || undefined,
+    team: [], openItems: 0, minutesThisMonth: 0,
+  })
+})
+
+clients.patch('/clients/:clientId', async (c) => {
+  const principal = c.get('principal')
+  if (!isManager(principal)) {
+    throw HttpError.forbidden('Only managers and administrators can edit clients.')
+  }
+
+  const existing = await c.env.DB
+    .prepare(
+      `select id, organisation_id, name, code, status, colour, contact_name, contact_email,
+              contact_phone, website, address, notes, started_on
+         from client where id = ?`,
+    )
+    .bind(c.req.param('clientId'))
+    .first<ClientRow & { organisation_id: string }>()
+  if (!existing || existing.organisation_id !== principal.organisationId) {
+    throw HttpError.notFound('Client')
+  }
+
+  const body = await readJson<Record<string, unknown>>(c.req)
+  const code = optionalText(body.code, 'The client code', 12)?.toUpperCase()
+  if (code && code !== existing.code.toUpperCase()) {
+    const clash = await c.env.DB
+      .prepare(`select id from client where organisation_id = ? and upper(code) = ? and id <> ?`)
+      .bind(principal.organisationId, code, existing.id).first<{ id: string }>()
+    if (clash) throw HttpError.badRequest(`Another client already uses the code ${code}.`)
+  }
+
+  await c.env.DB
+    .prepare(
+      `update client set name = ?, code = ?, status = ?, colour = ?, contact_name = ?,
+              contact_email = ?, contact_phone = ?, website = ?, address = ?, notes = ?, started_on = ?
+        where id = ?`,
+    )
+    .bind(
+      optionalText(body.name, 'The client name') || existing.name,
+      code || existing.code,
+      body.status ? oneOf(body.status, STATUSES, 'Status') : existing.status,
+      optionalText(body.colour, 'Colour', LIMITS.colour) || existing.colour,
+      optionalText(body.contactName, 'The contact name') ?? existing.contact_name,
+      body.contactEmail === undefined
+        ? existing.contact_email
+        : body.contactEmail ? email(body.contactEmail, 'The contact email') : null,
+      optionalText(body.contactPhone, 'The phone number', 40) ?? existing.contact_phone,
+      body.website === undefined ? existing.website : httpUrl(body.website, 'The website') ?? null,
+      optionalText(body.address, 'The address', LIMITS.shortText) ?? existing.address,
+      optionalText(body.notes, 'Notes', LIMITS.longText) ?? existing.notes,
+      body.startedOn === undefined ? existing.started_on : isoDate(body.startedOn, 'The start date') ?? null,
+      existing.id,
+    )
+    .run()
+
+  await recordActivity(c.env.DB, {
+    entityType: 'CLIENT', entityId: existing.id, actorId: principal.userId,
+    action: 'UPDATED', detail: optionalText(body.name, 'The client name') || existing.name,
+  })
+  return c.body(null, 204)
+})
+
+/** Replaces the whole team for a client - the screen sends the full list. */
+clients.put('/clients/:clientId/team', async (c) => {
+  const principal = c.get('principal')
+  if (!isManager(principal)) {
+    throw HttpError.forbidden('Only managers and administrators can change who works with a client.')
+  }
+
+  const client = await c.env.DB
+    .prepare(`select id, organisation_id, name from client where id = ?`)
+    .bind(c.req.param('clientId'))
+    .first<{ id: string; organisation_id: string; name: string }>()
+  if (!client || client.organisation_id !== principal.organisationId) throw HttpError.notFound('Client')
+
+  const body = await readJson<{ members?: unknown }>(c.req)
+  const members = list<{ userId: string; roleOnClient?: ClientRole }>(body.members, 'The team')
+
+  if (members.filter((m) => m.roleOnClient === 'LEAD').length > 1) {
+    throw HttpError.badRequest('A client can have only one lead.')
+  }
+
+  // Delete then insert in one batch, so the pair is atomic and ordered.
+  const statements: D1PreparedStatement[] = [
+    c.env.DB.prepare(`delete from client_member where client_id = ?`).bind(client.id),
+  ]
+  for (const member of members) {
+    statements.push(
+      c.env.DB.prepare(
+        `insert into client_member (client_id, user_id, role_on_client, assigned_at)
+         select ?, id, ?, ? from app_user where id = ? and organisation_id = ?`,
+      ).bind(client.id, member.roleOnClient ?? 'MEMBER', now(), member.userId, principal.organisationId),
+    )
+  }
+  await c.env.DB.batch(statements)
+
+  await recordActivity(c.env.DB, {
+    entityType: 'CLIENT', entityId: client.id, actorId: principal.userId,
+    action: 'TEAM_CHANGED', detail: `${members.length} people on ${client.name}`,
+  })
+  return c.body(null, 204)
+})

@@ -1,0 +1,13 @@
+{
+  "name": "workos",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Health Web Group Work OS — the whole application, API and interface.",
+  "scripts": {
+    "install:all": "npm --prefix web install && npm --prefix api install",
+    "build": "npm --prefix web install --no-audit --no-fund && npm --prefix web run build && npm --prefix api install --no-audit --no-fund",
+    "test": "npm --prefix api test",
+    "typecheck": "npm --prefix api run typecheck && npm --prefix web exec tsc -- -b",
+    "deploy": "cd api && npx --yes wrangler d1 migrations apply workos --remote && npx --yes wrangler deploy"
+  }
+}

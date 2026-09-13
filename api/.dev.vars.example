@@ -1,0 +1,3 @@
+# Local development only. Copy to .dev.vars (which is gitignored).
+# Needed when ALLOW_PASSWORD_LOGIN is "true" for local sign-in.
+JWT_SECRET=generate-something-long-and-random-for-local-use-only
