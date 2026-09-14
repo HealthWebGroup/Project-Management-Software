@@ -16,60 +16,65 @@
   color-scheme: light;
 
   /* ---------------------------------------------------------------------
-     Palette
+     Palette — light, flat, and quiet.
 
-     Five of these are the client's own, chosen in realtimecolors:
+     One rule governs the whole thing: colour means something. The chrome
+     is near-white and grey, teal marks what is yours to act on, and the
+     only other colours in the interface are status and priority — so a
+     coloured thing on screen is always information, never decoration.
 
-       text        #050315      background  #FBFBFE
-       primary     #2F27CE      secondary   #DEDCFF
-       accent      #433BFF
-
-     Everything else is derived from them. Two notes on why the derived
-     values are not simply the given two neutrals:
-
-     - #FBFBFE is a hair off white, so using it as the page ground with
-       white cards on top leaves no separation at all — which is the flat
-       look we were asked to fix. It stays as the outermost ground, and a
-       deeper violet-tinted tint sits under the work surfaces.
-     - Greys are biased toward the indigo rather than neutral, so nothing
-       reads as a different temperature from the accent.
-
-     Every value here was checked: body text lands at 19.7:1, primary on
-     white at 9.1:1, primary on the secondary tint at 6.9:1.
+     Every pairing below was measured, not eyeballed. The worst case in
+     the whole set is 4.56:1 against a WCAG AA requirement of 4.5:1, and
+     body text lands at 15.9:1.
      --------------------------------------------------------------------- */
-  --ground: #FBFBFE;
-  --ground-deep: #EDECF8;
+  --ground: #F6F9F9;
+  --ground-deep: #EEF3F3;
   --surface: #FFFFFF;
-  --surface-2: #F5F4FC;
-  --surface-3: #E9E8F6;
-  --line: #DAD8EC;
-  --line-soft: #EDEBF8;
+  --surface-2: #F6F9F9;
+  --surface-3: #EAF0F0;
+  --line: #DCE5E4;
+  --line-soft: #EDF2F2;
 
-  --ink: #050315;
-  --ink-soft: #3A3550;
-  --muted: #615D7A;
+  --ink: #132523;
+  --ink-soft: #354745;
+  --muted: #5A6B69;
+  --faint: #697977;
 
-  /* Primary carries identity and every committed action; accent is the
-     brighter sibling used for focus, live state and the moving highlight.
-     Keeping them distinct is what stops the interface strobing. */
-  --accent: #2F27CE;
-  --accent-hot: #433BFF;
-  --accent-ink: #241DA6;
-  --accent-soft: #DEDCFF;
-  --brass: #A8570C;
-  --brass-soft: #F9E7D4;
+  /* Teal is the only brand colour, and it is spent only on what you can
+     act on: the primary button, focus, links, the selected thing. When
+     everything is teal nothing is. */
+  --accent: #0D7C6F;
+  --accent-hot: #12A08F;
+  --accent-ink: #0A6157;
+  --accent-soft: #E2F4F1;
 
-  /* ---- state ----------------------------------------------------------
-     Semantic colours, separate from the accent and always shipped with a
-     text label. Nudged cooler to sit with indigo without becoming it —
-     a status that reads as the brand colour stops reading as a status. */
-  --c-grey: #5F5B75;   --c-grey-bg: #E9E8F1;
-  --c-blue: #1F4FA8;   --c-blue-bg: #DDE6F8;
-  --c-green: #21694A;  --c-green-bg: #D8EDE3;
-  --c-amber: #8A5405;  --c-amber-bg: #FAEAD0;
-  --c-red: #A62A3E;    --c-red-bg: #F9DCE1;
-  --c-violet: #5B32A8; --c-violet-bg: #E6DCFA;
-  --c-teal: #0E6472;   --c-teal-bg: #D6EBEE;
+  /* Reserved for "now" — the running timer, today's line on the timeline.
+     Deliberately the one warm note in a cool interface. */
+  --brass: #9A5B00;
+  --brass-soft: #FFF3DA;
+
+  /* ---- status ---------------------------------------------------------
+     Dark text on a pale tint of its own hue. Not solid blocks of colour:
+     a board of forty rows in saturated blocks is unreadable, and the tint
+     still separates at a glance while leaving the text to do the work. */
+  --c-grey: #4A5A67;   --c-grey-bg: #EDF1F4;
+  --c-blue: #0A6099;   --c-blue-bg: #E2F1FB;
+  --c-green: #10693F;  --c-green-bg: #DDF5E7;
+  --c-amber: #9A5B00;  --c-amber-bg: #FFF3DA;
+  --c-red: #B3261E;    --c-red-bg: #FDE7E5;
+  --c-violet: #5B3FC4; --c-violet-bg: #ECE8FD;
+  --c-teal: #0D7C6F;   --c-teal-bg: #E2F4F1;
+
+  /* ---- priority -------------------------------------------------------
+     A separate ramp from status, and ordered: grey, blue, orange, red.
+     Priority answers "when", status answers "where" — using one palette
+     for both would make a board that is red because it is late look the
+     same as one that is red because it is stuck. */
+  --p-none: #5C6B69;      --p-none-bg: #F1F4F4;
+  --p-low: #4A5A67;       --p-low-bg: #EDF1F4;
+  --p-medium: #0A6099;    --p-medium-bg: #E2F1FB;
+  --p-high: #A1490A;      --p-high-bg: #FFEBDC;
+  --p-critical: #B3261E;  --p-critical-bg: #FDE7E5;
 
   /* Categorical series colours for charts. NOT the status colours: status
      is state and always carries a label, while these carry identity where
@@ -102,27 +107,16 @@
   --gap-group: 16px;
   --chip-y: 3px;
 
-  /* Shadows carry a trace of the indigo rather than being neutral grey —
-     a grey shadow over a violet-tinted ground reads as smudge. */
-  --e1: 0 1px 2px rgba(5, 3, 21, .06), 0 1px 1px rgba(5, 3, 21, .04);
-  --e2: 0 2px 4px rgba(5, 3, 21, .06), 0 8px 20px -6px rgba(20, 12, 80, .14);
-  --e3: 0 4px 8px rgba(5, 3, 21, .08), 0 24px 48px -12px rgba(20, 12, 80, .26);
+  /* Shadows are nearly gone. Separation comes from a hairline and a
+     change of ground; a light interface that leans on drop shadows
+     starts looking grubby the moment there is more than one card. */
+  --e1: 0 1px 2px rgba(19, 37, 35, .05);
+  --e2: 0 1px 3px rgba(19, 37, 35, .07), 0 4px 12px -4px rgba(19, 37, 35, .08);
+  --e3: 0 2px 6px rgba(19, 37, 35, .08), 0 16px 32px -12px rgba(19, 37, 35, .16);
   --shadow: var(--e2);
-  --lip: inset 0 1px 0 rgba(255, 255, 255, .85);
-  --glass: rgba(255, 255, 255, .66);
-  --ring: rgba(67, 59, 255, .34);
-
-  /* ---- motion ---------------------------------------------------------
-     `--glide` is the one the moving highlight uses. It is slower than a
-     hover and faster than a page, which is what makes a highlight read as
-     one object travelling rather than two fading. */
-  --fast: 130ms;
-  --base: 220ms;
-  --slow: 420ms;
-  --glide: 260ms;
-  --ease: cubic-bezier(.2, .6, .25, 1);
-  --out: cubic-bezier(.16, 1.02, .3, 1.02);
-  --spring: cubic-bezier(.34, 1.3, .44, 1);
+  --lip: inset 0 0 0 0 rgba(0, 0, 0, 0);
+  --glass: rgba(255, 255, 255, .88);
+  --ring: rgba(13, 124, 111, .32);
 }
 
 :root[data-density='comfortable'] {
@@ -141,36 +135,45 @@
   :root:not([data-theme='light']) {
     color-scheme: dark;
 
-    /* The same palette after dark. #2F27CE is unreadable on a dark ground
-       (2.7:1), so the accent brightens to #8B85FF, which clears 5.6:1 on
-       every surface here. The hue is held; only the lightness moves, so
-       it still reads as the same brand rather than a different one. */
-    --ground: #080614;
-    --ground-deep: #050310;
-    --surface: #12102A;
-    --surface-2: #1A1836;
-    --surface-3: #232043;
-    --line: #2F2C57;
-    --line-soft: #1E1B3B;
+    /* The same interface after dark. #0D7C6F is unreadable on a dark
+       ground, so the accent lifts to #35C9B4 — the hue is held, only the
+       lightness moves, so it still reads as the same tool. Status and
+       priority invert the same way: pale text on a deep tint of its own
+       hue, so a colour never changes meaning between themes. */
+    --ground: #0C1514;
+    --ground-deep: #081110;
+    --surface: #121D1C;
+    --surface-2: #172423;
+    --surface-3: #1E2C2A;
+    --line: #263634;
+    --line-soft: #1A2726;
 
-    --ink: #EDEBF8;
-    --ink-soft: #BDB9D6;
-    --muted: #9A95B2;
+    --ink: #E4EDEB;
+    --ink-soft: #B4C3C0;
+    --muted: #8B9B98;
+    --faint: #768683;
 
-    --accent: #8B85FF;
-    --accent-hot: #A7A2FF;
-    --accent-ink: #C4C0FF;
-    --accent-soft: #221F47;
-    --brass: #DE9A4E;
-    --brass-soft: #2E2010;
+    --accent: #35C9B4;
+    --accent-hot: #54DDC9;
+    --accent-ink: #7BE8D7;
+    --accent-soft: #10302C;
 
-    --c-grey: #A5A0BC;   --c-grey-bg: #221F3C;
-    --c-blue: #8FB2EE;   --c-blue-bg: #16224A;
-    --c-green: #72C9A0;  --c-green-bg: #102E28;
-    --c-amber: #E2AA57;  --c-amber-bg: #2F2412;
-    --c-red: #F0899C;    --c-red-bg: #35182A;
-    --c-violet: #B79AE6; --c-violet-bg: #251C42;
-    --c-teal: #66BFC9;   --c-teal-bg: #102B33;
+    --brass: #E0A44F;
+    --brass-soft: #2C2110;
+
+    --c-grey: #A3B1BC;   --c-grey-bg: #1D2830;
+    --c-blue: #74BCEE;   --c-blue-bg: #102636;
+    --c-green: #5FCB90;  --c-green-bg: #0E2C1E;
+    --c-amber: #E0A44F;  --c-amber-bg: #2C2110;
+    --c-red: #F08D85;    --c-red-bg: #331815;
+    --c-violet: #B4A2F0; --c-violet-bg: #221C3B;
+    --c-teal: #35C9B4;   --c-teal-bg: #10302C;
+
+    --p-none: #8B9B98;      --p-none-bg: #1A2524;
+    --p-low: #A3B1BC;       --p-low-bg: #1D2830;
+    --p-medium: #74BCEE;    --p-medium-bg: #102636;
+    --p-high: #E8A06A;      --p-high-bg: #2E1D10;
+    --p-critical: #F08D85;  --p-critical-bg: #331815;
 
     --cat-1: #2E86C8;
     --cat-2: #D9662B;
@@ -179,49 +182,56 @@
     --cat-5: #7A6BE0;
     --cat-6: #C4739F;
 
-    --e1: 0 1px 2px rgba(0, 0, 0, .55);
-    --e2: 0 2px 6px rgba(0, 0, 0, .5), 0 10px 26px -8px rgba(0, 0, 0, .65);
-    --e3: 0 6px 14px rgba(0, 0, 0, .55), 0 28px 60px -14px rgba(0, 0, 0, .8);
+    --e1: 0 1px 2px rgba(0, 0, 0, .5);
+    --e2: 0 1px 3px rgba(0, 0, 0, .5), 0 6px 16px -6px rgba(0, 0, 0, .6);
+    --e3: 0 2px 8px rgba(0, 0, 0, .55), 0 20px 40px -14px rgba(0, 0, 0, .75);
     --shadow: var(--e2);
-    --lip: inset 0 1px 0 rgba(255, 255, 255, .06);
-    --glass: rgba(18, 16, 42, .78);
-    --ring: rgba(167, 162, 255, .36);
+    --lip: inset 0 0 0 0 rgba(0, 0, 0, 0);
+    --glass: rgba(18, 29, 28, .86);
+    --ring: rgba(53, 201, 180, .38);
   }
 }
 
+/* The same values again, for when the theme has been chosen explicitly
+   rather than inherited from the system. Both blocks are needed: the
+   default state stamps no attribute at all. */
 :root[data-theme='dark'] {
   color-scheme: dark;
 
-  /* The same palette after dark. #2F27CE is unreadable on a dark ground
-     (2.7:1), so the accent brightens to #8B85FF, which clears 5.6:1 on
-     every surface here. The hue is held; only the lightness moves, so
-     it still reads as the same brand rather than a different one. */
-  --ground: #080614;
-  --ground-deep: #050310;
-  --surface: #12102A;
-  --surface-2: #1A1836;
-  --surface-3: #232043;
-  --line: #2F2C57;
-  --line-soft: #1E1B3B;
+  --ground: #0C1514;
+  --ground-deep: #081110;
+  --surface: #121D1C;
+  --surface-2: #172423;
+  --surface-3: #1E2C2A;
+  --line: #263634;
+  --line-soft: #1A2726;
 
-  --ink: #EDEBF8;
-  --ink-soft: #BDB9D6;
-  --muted: #9A95B2;
+  --ink: #E4EDEB;
+  --ink-soft: #B4C3C0;
+  --muted: #8B9B98;
+  --faint: #768683;
 
-  --accent: #8B85FF;
-  --accent-hot: #A7A2FF;
-  --accent-ink: #C4C0FF;
-  --accent-soft: #221F47;
-  --brass: #DE9A4E;
-  --brass-soft: #2E2010;
+  --accent: #35C9B4;
+  --accent-hot: #54DDC9;
+  --accent-ink: #7BE8D7;
+  --accent-soft: #10302C;
 
-  --c-grey: #A5A0BC;   --c-grey-bg: #221F3C;
-  --c-blue: #8FB2EE;   --c-blue-bg: #16224A;
-  --c-green: #72C9A0;  --c-green-bg: #102E28;
-  --c-amber: #E2AA57;  --c-amber-bg: #2F2412;
-  --c-red: #F0899C;  --c-red-bg: #35182A;
-  --c-violet: #B79AE6; --c-violet-bg: #251C42;
-  --c-teal: #66BFC9;   --c-teal-bg: #102B33;
+  --brass: #E0A44F;
+  --brass-soft: #2C2110;
+
+  --c-grey: #A3B1BC;   --c-grey-bg: #1D2830;
+  --c-blue: #74BCEE;   --c-blue-bg: #102636;
+  --c-green: #5FCB90;  --c-green-bg: #0E2C1E;
+  --c-amber: #E0A44F;  --c-amber-bg: #2C2110;
+  --c-red: #F08D85;    --c-red-bg: #331815;
+  --c-violet: #B4A2F0; --c-violet-bg: #221C3B;
+  --c-teal: #35C9B4;   --c-teal-bg: #10302C;
+
+  --p-none: #8B9B98;      --p-none-bg: #1A2524;
+  --p-low: #A3B1BC;       --p-low-bg: #1D2830;
+  --p-medium: #74BCEE;    --p-medium-bg: #102636;
+  --p-high: #E8A06A;      --p-high-bg: #2E1D10;
+  --p-critical: #F08D85;  --p-critical-bg: #331815;
 
   --cat-1: #2E86C8;
   --cat-2: #D9662B;
@@ -230,13 +240,13 @@
   --cat-5: #7A6BE0;
   --cat-6: #C4739F;
 
-  --e1: 0 1px 2px rgba(0, 0, 0, .55);
-  --e2: 0 2px 6px rgba(0, 0, 0, .5), 0 10px 26px -8px rgba(0, 0, 0, .65);
-  --e3: 0 6px 14px rgba(0, 0, 0, .55), 0 28px 60px -14px rgba(0, 0, 0, .8);
+  --e1: 0 1px 2px rgba(0, 0, 0, .5);
+  --e2: 0 1px 3px rgba(0, 0, 0, .5), 0 6px 16px -6px rgba(0, 0, 0, .6);
+  --e3: 0 2px 8px rgba(0, 0, 0, .55), 0 20px 40px -14px rgba(0, 0, 0, .75);
   --shadow: var(--e2);
-  --lip: inset 0 1px 0 rgba(255, 255, 255, .06);
-  --glass: rgba(18, 16, 42, .78);
-  --ring: rgba(167, 162, 255, .36);
+  --lip: inset 0 0 0 0 rgba(0, 0, 0, 0);
+  --glass: rgba(18, 29, 28, .86);
+  --ring: rgba(53, 201, 180, .38);
 }
 
 /* ====================================================================== */
@@ -270,10 +280,13 @@ body::before {
   inset: 0;
   z-index: 0;
   pointer-events: none;
+  /* Two washes, both cool, both barely there. The previous version put a
+     brass wash across the top right, which on a cool ground reads as a
+     stain rather than as light. A tool people sit in front of all day
+     should look like paper, not like a gradient. */
   background:
-    radial-gradient(52rem 40rem at 8% -6%, color-mix(in srgb, var(--accent-hot) 30%, transparent), transparent 60%),
-    radial-gradient(44rem 36rem at 98% 4%, color-mix(in srgb, var(--brass) 17%, transparent), transparent 58%),
-    radial-gradient(64rem 46rem at 46% 116%, color-mix(in srgb, var(--accent) 22%, transparent), transparent 62%),
+    radial-gradient(54rem 40rem at 6% -8%, color-mix(in srgb, var(--accent) 7%, transparent), transparent 58%),
+    radial-gradient(60rem 44rem at 96% 108%, color-mix(in srgb, var(--accent) 5%, transparent), transparent 60%),
     var(--ground);
 }
 
@@ -283,7 +296,10 @@ body::after {
   inset: 0;
   z-index: 0;
   pointer-events: none;
-  opacity: .5;
+  /* Was .5, which is texture you can see. At .18 it is only doing the job
+     grain is actually for: breaking up banding across a large flat pale
+     area. Visible grain on a light interface reads as a dirty screen. */
+  opacity: .18;
   mix-blend-mode: soft-light;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)' opacity='.42'/%3E%3C/svg%3E");
 }

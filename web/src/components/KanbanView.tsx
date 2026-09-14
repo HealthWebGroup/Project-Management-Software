@@ -6,8 +6,9 @@
  * which is what makes the card move - the lane is a view of the data, never
  * a place the card lives.
  */
-import { useMemo, useState } from 'react'
-import type { BoardDetail, CellValue, Client, Item } from '../lib/types'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import type { BoardDetail, CellValue, Client, Item, Priority } from '../lib/types'
+import PriorityPill from './PriorityPill'
 import { Avatar, colourClass } from './Pill'
 import { daysUntil } from './CellEditor'
 
@@ -28,12 +29,19 @@ interface Props {
   onSetCell: (itemId: string, columnId: string, value: CellValue) => void
   onSetClient: (itemId: string, clientId: string | null) => void
   onOpenItem: (itemId: string) => void
+  /** Creates the item and hands it back, so the new card can be dropped
+      into the lane it was added to rather than into "no status". */
+  onAddItem: (groupId: string, title: string) => Promise<Item | null>
+  onRename: (itemId: string, title: string) => void
+  onSetPriority: (itemId: string, priority: Priority) => void
+  onDelete: (itemId: string) => void
 }
 
 const UNSET = '__unset__'
 
 export default function KanbanView({
   board, items, clients, readOnly, onSetCell, onSetClient, onOpenItem,
+  onAddItem, onRename, onSetPriority, onDelete,
 }: Props) {
   const statusColumns = useMemo(
     () => board.columns.filter((c) => c.type === 'STATUS'),
@@ -229,14 +237,18 @@ export default function KanbanView({
                     }}
                   >
                     <div className="card-top">
-                      <button className="card-title" onClick={() => onOpenItem(item.id)}>
-                        {item.title}
-                      </button>
+                      <CardTitle
+                        title={item.title}
+                        readOnly={readOnly}
+                        onOpen={() => onOpenItem(item.id)}
+                        onRename={(next) => onRename(item.id, next)}
+                      />
                       {!readOnly && (
                         <CardMenu
                           lanes={lanes}
                           current={lane.key}
                           onMove={(key) => moveTo(item.id, key, lane.key)}
+                          onDelete={() => onDelete(item.id)}
                         />
                       )}
                     </div>
@@ -254,13 +266,39 @@ export default function KanbanView({
                     )}
 
                     <footer className="card-foot">
-                      <span className="card-people">
-                        {owners.length === 0 ? (
-                          <span className="card-unassigned">Unassigned</span>
-                        ) : (
-                          owners.map((o) => <Avatar key={o.id} name={o.fullName} />)
-                        )}
-                      </span>
+                      {/* Priority first in the footer: it is the thing people
+                          change most often after status, and burying it in
+                          the detail panel was why nobody was setting it. In
+                          the footer an unset priority costs no height - on
+                          its own row it left an empty band on every card. */}
+                      <PriorityPill
+                        value={item.priority}
+                        readOnly={readOnly}
+                        quiet
+                        onChange={(p) => onSetPriority(item.id, p)}
+                      />
+                      {/* Assigning from the card, not from the panel. This is
+                          the "easy to assign" part: one click on the avatars,
+                          pick a name, done — and because it writes the same
+                          people cell the table writes, the change is on every
+                          view at once. */}
+                      {peopleColumn && !readOnly ? (
+                        <AssignPicker
+                          members={board.members}
+                          chosen={item.cells[peopleColumn.id]?.userIds ?? []}
+                          onChange={(userIds) =>
+                            onSetCell(item.id, peopleColumn.id, userIds.length ? { userIds } : {})
+                          }
+                        />
+                      ) : (
+                        <span className="card-people">
+                          {owners.length === 0 ? (
+                            <span className="card-unassigned">Unassigned</span>
+                          ) : (
+                            owners.map((o) => <Avatar key={o.id} name={o.fullName} />)
+                          )}
+                        </span>
+                      )}
                       {due && (
                         <span
                           className={`card-due ${
@@ -278,8 +316,19 @@ export default function KanbanView({
                 )
               })}
 
-              {lane.items.length === 0 && <p className="lane-empty">Drop a card here</p>}
+              {lane.items.length === 0 && <p className="lane-empty">Nothing here yet</p>}
             </div>
+
+            {/* Adding happens in the lane, so the new task already has the
+                status, the owner or the client that lane stands for. */}
+            {!readOnly && board.groups.length > 0 && (
+              <AddCard
+                onAdd={async (title) => {
+                  const created = await onAddItem(board.groups[0].id, title)
+                  if (created && lane.key !== UNSET) moveTo(created.id, lane.key)
+                }}
+              />
+            )}
           </section>
         ))}
 
@@ -297,15 +346,184 @@ export default function KanbanView({
   )
 }
 
+/**
+ * The card's title: a button until you want to change it, an input after.
+ *
+ * Clicking opens the item, which is what a title should do. Renaming is on
+ * the pencil and on double-click, so the common action and the occasional
+ * one do not fight over the same click.
+ */
+function CardTitle({
+  title, readOnly, onOpen, onRename,
+}: {
+  title: string
+  readOnly: boolean
+  onOpen: () => void
+  onRename: (title: string) => void
+}) {
+  const [editing, setEditing] = useState(false)
+  const [draft, setDraft] = useState(title)
+  const input = useRef<HTMLInputElement>(null)
+
+  // If the title changes underneath us - a rule renamed it, or somebody
+  // else did - take the new one, but never while it is being typed into.
+  useEffect(() => { if (!editing) setDraft(title) }, [title, editing])
+  useEffect(() => { if (editing) input.current?.select() }, [editing])
+
+  function commit() {
+    const next = draft.trim()
+    setEditing(false)
+    if (!next) { setDraft(title); return }   // an empty title is not a rename
+    if (next !== title) onRename(next)
+  }
+
+  if (editing) {
+    return (
+      <input
+        ref={input}
+        className="card-title-edit"
+        value={draft}
+        onChange={(e) => setDraft(e.target.value)}
+        onBlur={commit}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') { e.preventDefault(); commit() }
+          if (e.key === 'Escape') { setDraft(title); setEditing(false) }
+        }}
+        aria-label="Task name"
+      />
+    )
+  }
+
+  return (
+    <>
+      <button className="card-title" onClick={onOpen} onDoubleClick={() => !readOnly && setEditing(true)}>
+        {title}
+      </button>
+      {!readOnly && (
+        <button className="card-edit" onClick={() => setEditing(true)} aria-label={`Rename ${title}`}>
+          ✎
+        </button>
+      )}
+    </>
+  )
+}
+
+/** Put people on a task from the card. Toggles, so it also takes them off. */
+function AssignPicker({
+  members, chosen, onChange,
+}: {
+  members: BoardDetail['members']
+  chosen: string[]
+  onChange: (userIds: string[]) => void
+}) {
+  const [open, setOpen] = useState(false)
+  const on = members.filter((m) => chosen.includes(m.id))
+
+  return (
+    <div className="assign-wrap">
+      <button className="assign-btn" onClick={() => setOpen((o) => !o)} aria-label="Assign people">
+        {on.length === 0
+          ? <span className="card-unassigned">+ Assign</span>
+          : on.map((o) => <Avatar key={o.id} name={o.fullName} />)}
+      </button>
+      {open && (
+        <>
+          <div className="card-menu-scrim" onClick={() => setOpen(false)} />
+          <div className="assign-list">
+            <span className="cm-title">Who is on this</span>
+            {members.map((m) => {
+              const isOn = chosen.includes(m.id)
+              return (
+                <button
+                  key={m.id}
+                  className={isOn ? 'on' : ''}
+                  onClick={() =>
+                    onChange(isOn ? chosen.filter((id) => id !== m.id) : [...chosen, m.id])
+                  }
+                >
+                  <Avatar name={m.fullName} />
+                  {m.fullName}
+                  {isOn && <span className="assign-tick">✓</span>}
+                </button>
+              )
+            })}
+            {members.length === 0 && <span className="cm-empty">Nobody on this board yet</span>}
+          </div>
+        </>
+      )}
+    </div>
+  )
+}
+
+/**
+ * Add a task without leaving the lane.
+ *
+ * The field stays open and keeps focus after each Enter, so adding six
+ * tasks off a meeting note is six lines of typing rather than six rounds of
+ * click-type-click. It is readOnly while saving rather than disabled -
+ * disabling an input blurs it, and focus does not reliably come back.
+ */
+function AddCard({ onAdd }: { onAdd: (title: string) => Promise<void> }) {
+  const [open, setOpen] = useState(false)
+  const [title, setTitle] = useState('')
+  const [busy, setBusy] = useState(false)
+  const input = useRef<HTMLInputElement>(null)
+
+  useEffect(() => { if (open) input.current?.focus() }, [open])
+
+  async function submit() {
+    const next = title.trim()
+    if (!next || busy) return
+    setBusy(true)
+    await onAdd(next)
+    setBusy(false)
+    setTitle('')
+    requestAnimationFrame(() => input.current?.focus())
+  }
+
+  if (!open) {
+    return (
+      <button className="lane-add" onClick={() => setOpen(true)}>
+        + Add task
+      </button>
+    )
+  }
+
+  return (
+    <div className="lane-compose">
+      <input
+        ref={input}
+        value={title}
+        readOnly={busy}
+        placeholder="What needs doing?"
+        onChange={(e) => setTitle(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') { e.preventDefault(); void submit() }
+          if (e.key === 'Escape') { setTitle(''); setOpen(false) }
+        }}
+        aria-label="New task"
+      />
+      <div className="lane-compose-foot">
+        <button className="btn primary sm" onClick={() => void submit()} disabled={!title.trim() || busy}>
+          {busy ? 'Adding…' : 'Add'}
+        </button>
+        <button className="btn sm" onClick={() => { setTitle(''); setOpen(false) }}>Cancel</button>
+      </div>
+    </div>
+  )
+}
+
 /** Touch devices cannot drag, so every card also carries a move menu. */
 function CardMenu({
   lanes,
   current,
   onMove,
+  onDelete,
 }: {
   lanes: Lane[]
   current: string
   onMove: (laneKey: string) => void
+  onDelete: () => void
 }) {
   const [open, setOpen] = useState(false)
   return (
@@ -331,6 +549,18 @@ function CardMenu({
                   {lane.title}
                 </button>
               ))}
+            <span className="cm-sep" />
+            <button
+              className="cm-danger"
+              onClick={() => {
+                // No confirm dialog: a browser confirm() blocks everything,
+                // and the board already keeps an activity log of deletions.
+                onDelete()
+                setOpen(false)
+              }}
+            >
+              Delete task
+            </button>
           </div>
         </>
       )}

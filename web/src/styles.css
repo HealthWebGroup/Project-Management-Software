@@ -71,3 +71,9 @@
 
 /* Phones: the board becomes cards, the sidebar becomes a drawer */
 @import './styles/21-phones.css';
+
+/* Priority colours, and editing a task on the card it sits on */
+@import './styles/22-priority-and-editing.css';
+
+/* Settings: display, people and access, boards and rules */
+@import './styles/23-settings.css';

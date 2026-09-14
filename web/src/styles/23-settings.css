@@ -1,0 +1,118 @@
+/* =====================================================================
+   Settings
+
+   A reading layout, not a working one. Nothing here is done at speed, so
+   it gets room: one column, generous spacing, and a line of explanation
+   under every heading. The boards are where density matters.
+   ===================================================================== */
+
+.settings-page { max-width: 860px; }
+
+.page-sub {
+  margin: 4px 0 0;
+  color: var(--muted);
+  font-size: 13.5px;
+  max-width: 58ch;
+}
+
+/* ------------------------------------------------------------ the tabs */
+
+.settings-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 18px 0 22px;
+}
+
+.settings-tabs button {
+  flex: 1 1 210px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 10px 13px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+  text-align: left;
+  cursor: pointer;
+  transition: border-color var(--fast) var(--ease), background-color var(--fast) var(--ease);
+}
+
+.settings-tabs button:hover { border-color: var(--accent); }
+.settings-tabs button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* The selected tab is marked by fill and weight, not by colour alone -
+   a border colour on its own is the kind of "selected" that people miss. */
+.settings-tabs button.on {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.st-label { font-size: 13.5px; font-weight: 650; color: var(--ink); }
+.settings-tabs button.on .st-label { color: var(--accent-ink); }
+.st-blurb { font-size: 12px; color: var(--muted); line-height: 1.35; }
+
+/* ----------------------------------------------------------- the body */
+
+.settings-body { display: flex; flex-direction: column; gap: 18px; }
+
+.settings-block {
+  padding: 16px 18px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+}
+
+.settings-block h2 {
+  margin: 0 0 4px;
+  font-size: 14px;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+}
+
+.settings-note {
+  margin: 0 0 12px;
+  color: var(--muted);
+  font-size: 12.5px;
+  line-height: 1.5;
+  max-width: 62ch;
+}
+
+.segmented.wide button { padding: 6px 14px; }
+
+/* ------------------------------------------------- the list of boards */
+
+.settings-list { list-style: none; margin: 0; padding: 0; }
+
+.settings-list li {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 9px 0;
+  border-top: 1px solid var(--line-soft);
+}
+.settings-list li:first-child { border-top: 0; }
+
+.sl-what { display: flex; flex-direction: column; gap: 1px; min-width: 0; flex: 1; }
+.sl-name { font-size: 13.5px; font-weight: 600; }
+.sl-where {
+  font-size: 11px;
+  color: var(--faint);
+  text-transform: uppercase;
+  letter-spacing: .07em;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+}
+
+.sl-actions { display: flex; gap: 6px; flex: none; }
+
+/* ------------------------------------------------------------- phones */
+
+@media (max-width: 700px) {
+  /* Tabs go full width and stack. Three of them side by side at 380px
+     gives three unreadable columns of two-word labels. */
+  .settings-tabs button { flex: 1 1 100%; }
+
+  .settings-list li { flex-wrap: wrap; }
+  .sl-actions { width: 100%; }
+  .sl-actions .btn { flex: 1; }
+}

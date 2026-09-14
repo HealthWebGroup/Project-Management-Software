@@ -3,6 +3,7 @@ import { Access, accessTo, canEdit, defaultSensitivity, requireAdmin, requireEdi
 import { bool, flag, newId, now, parseCell, parseSettings, recordActivity } from '../db'
 import { HttpError } from '../errors'
 import { LIMITS, integer, oneOf, optionalText, readJson, text } from '../validate'
+import type { Priority } from '../priority'
 import { GROUP_COLOURS, TEMPLATES } from '../templates'
 import type { BoardPermission, BoardTemplate, Env, Sensitivity, Vars } from '../types'
 
@@ -153,11 +154,18 @@ boards.get('/boards/:boardId', async (c) => {
     ).bind(board.id).all<{ id: string; title: string; type: string; settings: string; sort_order: number; width: number }>(),
 
     c.env.DB.prepare(
-      `select id, group_id, parent_id, client_id, title, sort_order, created_at, updated_at
-         from item where board_id = ? and archived = 0 order by sort_order`,
+      // Ordered by priority first, then by the hand-ordering. Critical work
+      // rises to the top of its group without anybody having to drag it
+      // there, and two items of equal priority keep the order you put them
+      // in - so sorting by priority never scrambles a list you arranged.
+      `select id, group_id, parent_id, client_id, title, sort_order, priority,
+              created_at, updated_at
+         from item where board_id = ? and archived = 0
+        order by priority_rank desc, sort_order`,
     ).bind(board.id).all<{
       id: string; group_id: string | null; parent_id: string | null; client_id: string | null
-      title: string; sort_order: number; created_at: string; updated_at: string
+      title: string; sort_order: number; priority: Priority
+      created_at: string; updated_at: string
     }>(),
 
     c.env.DB.prepare(
@@ -209,6 +217,7 @@ boards.get('/boards/:boardId', async (c) => {
       clientId: i.client_id ?? undefined,
       title: i.title,
       sortOrder: i.sort_order,
+      priority: i.priority,
       cells: cellsByItem.get(i.id) ?? {},
       createdAt: i.created_at,
       updatedAt: i.updated_at,

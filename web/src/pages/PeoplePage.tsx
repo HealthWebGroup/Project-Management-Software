@@ -23,7 +23,7 @@ const ROLES: { value: Role; label: string; blurb: string }[] = [
 
 const STATUSES: UserStatus[] = ['ACTIVE', 'SUSPENDED', 'LEAVER']
 
-export default function PeoplePage() {
+export default function PeoplePage({ embedded = false }: { embedded?: boolean } = {}) {
   const { user } = useAuth()
   const { clients } = useClients()
   const [people, setPeople] = useState<Person[] | null>(null)
@@ -64,7 +64,10 @@ export default function PeoplePage() {
     <div className="page">
       <header className="page-head">
         <div>
-          <h1>People</h1>
+          {/* Inside Settings the page already carries a heading, and a
+              second <h1> under it both looks wrong and breaks the heading
+              order that screen readers navigate by. */}
+          {!embedded && <h1>People</h1>}
           <p>
             <strong>Role</strong> sets what someone can do. <strong>Clients</strong> sets what they
             can see. Board exceptions cover the rest.

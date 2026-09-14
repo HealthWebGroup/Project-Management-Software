@@ -8,13 +8,14 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { api, ApiError } from '../lib/api'
-import type { BoardDetail, CellValue, Item } from '../lib/types'
+import type { BoardDetail, CellValue, Item, Priority } from '../lib/types'
 import { useAuth } from '../state/auth'
 import { useClients } from '../state/clients'
 import { useTimer } from '../state/timer'
 import CellEditor from '../components/CellEditor'
 import ItemPanel from '../components/ItemPanel'
 import KanbanView from '../components/KanbanView'
+import PriorityPill from '../components/PriorityPill'
 import TimelineView from '../components/TimelineView'
 import AutomationsDialog from '../components/AutomationsDialog'
 import BoardAccessDialog from '../components/BoardAccessDialog'
@@ -161,6 +162,71 @@ export default function BoardPage() {
       }
     },
     [boardId, flash],
+  )
+
+  /**
+   * Add an item and hand back the one that was created.
+   *
+   * The kanban needs the id: a card added to the "Stuck" lane has to have
+   * its status cell set to Stuck immediately afterwards, or it appears in
+   * whichever lane holds the unset items and the person has to drag it to
+   * where they just asked for it.
+   */
+  const addItemReturning = useCallback(
+    async (groupId: string, title: string): Promise<Item | null> => {
+      if (!boardId) return null
+      try {
+        const created = await api.post<Item>(`/api/boards/${boardId}/items`, { groupId, title })
+        const item = { ...created, cells: created.cells ?? {} }
+        setBoard((current) => (current ? { ...current, items: [...current.items, item] } : current))
+        return item
+      } catch (e) {
+        flash(e instanceof ApiError ? e.message : 'Could not add the item.')
+        return null
+      }
+    },
+    [boardId, flash],
+  )
+
+  /**
+   * Priority, applied on screen first and sent after.
+   *
+   * Same optimistic pattern as renameItem, and for the same reason: waiting
+   * for a round trip before a pill changes colour makes the interface feel
+   * like it is thinking about whether to obey you. If the write fails the
+   * old value goes back and the toast says what happened.
+   */
+  const setPriority = useCallback(
+    async (itemId: string, priority: Priority) => {
+      let previous: Priority = 'NONE'
+      setBoard((current) => {
+        if (!current) return current
+        return {
+          ...current,
+          items: current.items.map((i) => {
+            if (i.id !== itemId) return i
+            previous = i.priority
+            return { ...i, priority }
+          }),
+        }
+      })
+      try {
+        await api.patch(`/api/items/${itemId}`, { priority })
+      } catch (e) {
+        setBoard((current) =>
+          current
+            ? {
+                ...current,
+                items: current.items.map((i) =>
+                  i.id === itemId ? { ...i, priority: previous } : i,
+                ),
+              }
+            : current,
+        )
+        flash(e instanceof ApiError ? e.message : 'Could not change the priority.')
+      }
+    },
+    [flash],
   )
 
   const renameItem = useCallback(
@@ -384,6 +450,10 @@ export default function BoardPage() {
           onSetCell={setCell}
           onSetClient={setItemClient}
           onOpenItem={setOpenItemId}
+          onAddItem={addItemReturning}
+          onRename={renameItem}
+          onSetPriority={setPriority}
+          onDelete={deleteItem}
         />
       ) : (
       <div className="board-scroll">
@@ -415,6 +485,11 @@ export default function BoardPage() {
                   <thead>
                     <tr>
                       <th className="col-item">Item</th>
+                      {/* Priority is a fixed column on every board, sitting
+                          before the configurable ones. It is a field on the
+                          item rather than a board column, so it is the one
+                          thing that means the same on every board. */}
+                      <th className="col-prio">Priority</th>
                       {board.columns.map((column) => (
                         <th key={column.id} style={{ width: column.width, minWidth: column.width }}>
                           {column.title}
@@ -437,6 +512,13 @@ export default function BoardPage() {
                               Open
                             </button>
                           </div>
+                        </td>
+                        <td className="col-prio" data-label="Priority">
+                          <PriorityPill
+                            value={item.priority}
+                            readOnly={readOnly}
+                            onChange={(p) => setPriority(item.id, p)}
+                          />
                         </td>
                         {board.columns.map((column) => (
                           <td
@@ -483,7 +565,7 @@ export default function BoardPage() {
                     ))}
                     {rows.length === 0 && (
                       <tr className="row empty">
-                        <td colSpan={board.columns.length + 2}>Empty</td>
+                        <td colSpan={board.columns.length + 3}>Empty</td>
                       </tr>
                     )}
                   </tbody>

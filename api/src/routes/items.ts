@@ -4,6 +4,7 @@ import { onEvent } from '../automations'
 import { validateCell } from '../cells'
 import { newId, now, parseCell, recordActivity } from '../db'
 import { HttpError } from '../errors'
+import { type Priority, rankOf, readPriority } from '../priority'
 import { LIMITS, integer, optionalText, readJson, text } from '../validate'
 import { loadBoard } from './boards'
 import { notify } from './notifications'
@@ -19,6 +20,7 @@ interface ItemRow {
   client_id: string | null
   title: string
   sort_order: number
+  priority: Priority
   created_at: string
   updated_at: string
 }
@@ -26,7 +28,8 @@ interface ItemRow {
 async function loadItem(env: Env, itemId: string): Promise<ItemRow> {
   const item = await env.DB
     .prepare(
-      `select id, board_id, group_id, parent_id, client_id, title, sort_order, created_at, updated_at
+      `select id, board_id, group_id, parent_id, client_id, title, sort_order, priority,
+              created_at, updated_at
          from item where id = ?`,
     )
     .bind(itemId)
@@ -55,6 +58,7 @@ const toDto = (item: ItemRow, cells: Record<string, CellValue> = {}) => ({
   clientId: item.client_id ?? undefined,
   title: item.title,
   sortOrder: item.sort_order,
+  priority: item.priority,
   cells,
   createdAt: item.created_at,
   updatedAt: item.updated_at,
@@ -69,8 +73,12 @@ items.post('/boards/:boardId/items', async (c) => {
 
   const body = await readJson<{
     groupId?: unknown; parentId?: unknown; clientId?: unknown; title?: unknown
+    priority?: unknown
   }>(c.req)
   const title = text(body.title, 'The item title', LIMITS.title)
+  // Not mentioning priority means NONE on a brand new item - there is
+  // nothing already stored for it to keep.
+  const priority = readPriority(body.priority) ?? 'NONE'
 
   // Every id in the body has to belong to this board, or to this
   // organisation. Otherwise creating an item on a board you CAN open is a way
@@ -103,14 +111,16 @@ items.post('/boards/:boardId/items', async (c) => {
   await c.env.DB
     .prepare(
       `insert into item (id, board_id, group_id, parent_id, client_id, title, sort_order,
-                         created_by, created_at, updated_at)
-       values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                         priority, priority_rank, created_by, created_at, updated_at)
+       values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     )
     .bind(
       id, board.id, groupId, parentId,
       // Fall back to the board's client so an item is never orphaned.
       clientId ?? board.client_id ?? null,
-      title, position?.next ?? 0, principal.userId, timestamp, timestamp,
+      title, position?.next ?? 0,
+      priority, rankOf(priority),
+      principal.userId, timestamp, timestamp,
     )
     .run()
 
@@ -128,7 +138,8 @@ items.post('/boards/:boardId/items', async (c) => {
     toDto({
       id, board_id: board.id, group_id: groupId, parent_id: parentId,
       client_id: clientId ?? board.client_id ?? null, title,
-      sort_order: position?.next ?? 0, created_at: timestamp, updated_at: timestamp,
+      sort_order: position?.next ?? 0, priority,
+      created_at: timestamp, updated_at: timestamp,
     }),
   )
 })
@@ -146,7 +157,8 @@ items.get('/items/:itemId', async (c) => {
       .bind(item.id).all<{ column_id: string; value: string }>(),
 
     c.env.DB.prepare(
-      `select id, board_id, group_id, parent_id, client_id, title, sort_order, created_at, updated_at
+      `select id, board_id, group_id, parent_id, client_id, title, sort_order, priority,
+              created_at, updated_at
          from item where parent_id = ? order by sort_order`,
     ).bind(item.id).all<ItemRow>(),
 
@@ -191,10 +203,14 @@ items.patch('/items/:itemId', async (c) => {
 
   const body = await readJson<{
     title?: unknown; groupId?: unknown; clientId?: unknown
-    sortOrder?: unknown; archived?: unknown
+    sortOrder?: unknown; archived?: unknown; priority?: unknown
   }>(c.req)
 
   const title = optionalText(body.title, 'The item title', LIMITS.title) || item.title
+
+  // Leaving priority out of the body keeps whatever is stored. Sending
+  // 'NONE' clears it, which is a different thing and is recorded as such.
+  const priority = readPriority(body.priority) ?? item.priority
 
   // Same reasoning as on create: a group id from the body has to be a group
   // on this board, and a client id has to be one this organisation owns.
@@ -217,13 +233,16 @@ items.patch('/items/:itemId', async (c) => {
 
   await c.env.DB
     .prepare(
-      `update item set title = ?, group_id = ?, client_id = ?, sort_order = ?, archived = ?, updated_at = ?
+      `update item set title = ?, group_id = ?, client_id = ?, priority = ?, priority_rank = ?,
+                       sort_order = ?, archived = ?, updated_at = ?
         where id = ?`,
     )
     .bind(
       title,
       groupId,
       clientId,
+      priority,
+      rankOf(priority),
       body.sortOrder === undefined ? item.sort_order : integer(body.sortOrder, 'Position', 0, 1_000_000),
       body.archived === undefined ? 0 : body.archived ? 1 : 0,
       now(),
@@ -242,6 +261,17 @@ items.patch('/items/:itemId', async (c) => {
     await recordActivity(c.env.DB, {
       entityType: 'ITEM', entityId: item.id, boardId: board.id, actorId: principal.userId,
       action: 'CELL_CHANGED', detail: `Client changed on ${title}`,
+    })
+  }
+  // Priority is recorded with both values. "Who dropped this from Critical,
+  // and when" is a question that gets asked after something is missed, and
+  // an entry that only says "priority changed" cannot answer it.
+  if (priority !== item.priority) {
+    await recordActivity(c.env.DB, {
+      entityType: 'ITEM', entityId: item.id, boardId: board.id, actorId: principal.userId,
+      action: 'CELL_CHANGED',
+      detail: `Priority on ${title}: ${item.priority} -> ${priority}`,
+      before: { priority: item.priority }, after: { priority },
     })
   }
 

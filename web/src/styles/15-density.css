@@ -118,7 +118,7 @@
   :root:not([data-theme='light']) .status-cell.teal {
     background-color: var(--surface-2);
     border-color: color-mix(in srgb, var(--sc) 34%, transparent);
-    box-shadow: inset 0 1px 0 color-mix(in srgb, #fff 7%, transparent);
+    box-shadow: var(--lip);
   }
   :root:not([data-theme='light']) .grid-scroll {
     box-shadow: var(--lip), var(--e1);
@@ -133,7 +133,7 @@
 :root[data-theme='dark'] .status-cell.teal {
   background-color: var(--surface-2);
   border-color: color-mix(in srgb, var(--sc) 34%, transparent);
-  box-shadow: inset 0 1px 0 color-mix(in srgb, #fff 7%, transparent);
+  box-shadow: var(--lip);
 }
 :root[data-theme='dark'] .grid-scroll { box-shadow: var(--lip), var(--e1); }
 

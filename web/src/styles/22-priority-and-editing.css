@@ -1,0 +1,292 @@
+/* =====================================================================
+   Priority, and editing a card where it sits
+
+   Two ideas here.
+
+   Priority is a ramp, not a set: grey, slate, blue, orange, red, in that
+   order, so a wall of cards reads as temperature before anybody reads a
+   word. It is deliberately a different ramp from status — status says
+   where a task is, priority says when it matters, and one palette doing
+   both would make "stuck" and "urgent" look like the same problem.
+
+   Editing happens on the card. Every control below writes through the
+   same call the table writes through, so a change made here is on the
+   table and the timeline before the next paint — there is one list of
+   items and three ways of looking at it.
+   ===================================================================== */
+
+/* ------------------------------------------------------------ priority */
+
+.prio {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 8px;
+  border: 1px solid transparent;
+  border-radius: 100px;
+  font-size: 11px;
+  font-weight: 650;
+  letter-spacing: .01em;
+  line-height: 1.5;
+  cursor: pointer;
+  transition: filter var(--fast) var(--ease), border-color var(--fast) var(--ease);
+}
+
+.prio:hover { filter: brightness(.97); }
+.prio:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.prio-none     { color: var(--p-none);     background: var(--p-none-bg); }
+.prio-low      { color: var(--p-low);      background: var(--p-low-bg); }
+.prio-medium   { color: var(--p-medium);   background: var(--p-medium-bg); }
+.prio-high     { color: var(--p-high);     background: var(--p-high-bg); }
+.prio-critical { color: var(--p-critical); background: var(--p-critical-bg); }
+
+/* Critical gets an outline as well as a fill. Colour alone carries it for
+   most people; the ring carries it for the ~8% of men with a red-green
+   deficiency, for whom red and orange on a pale ground are close. */
+.prio-critical { border-color: color-mix(in srgb, var(--p-critical) 34%, transparent); }
+
+/* Before anyone has triaged, the control should not shout. An untriaged
+   board of forty cards each wearing a grey "No priority" badge is forty
+   pieces of noise saying nothing.
+
+   It sits in the card footer rather than on its own row, so hiding it
+   costs no layout: the row it is on exists anyway for the avatars. */
+.prio.empty {
+  background: transparent;
+  color: var(--faint);
+  font-weight: 500;
+  opacity: 0;
+  transition: opacity var(--fast) var(--ease), color var(--fast) var(--ease);
+}
+.card:hover .prio.empty,
+.card:focus-within .prio.empty { opacity: 1; }
+.prio.empty:hover { color: var(--accent); background: var(--accent-soft); }
+
+/* Keyboard users never hover, so the control has to be reachable without
+   it. Without this the picker is mouse-only, which is a real exclusion
+   rather than a cosmetic one. */
+.prio.empty:focus-visible { opacity: 1; }
+
+.prio-wrap { position: relative; display: flex; }
+
+.prio-list {
+  position: absolute;
+  /* Above the scrim, which sits at 55. At 40 the scrim covered the menu:
+     the options were visible but every click landed on the scrim and shut
+     the menu instead of choosing anything - the control looked fine and
+     did nothing. A browser test caught it; the eye would not have. */
+  z-index: 56;
+  top: calc(100% + 5px);
+  left: 0;
+  min-width: 148px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 5px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--e2);
+}
+
+.prio-option {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 5px 8px;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+}
+
+/* The swatch. The option row stays on the surface so the list reads as a
+   menu, and the colour arrives as a dot rather than as a filled row. */
+.prio-option::before {
+  content: '';
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: currentColor;
+  flex: none;
+}
+
+.prio-option:hover  { background: var(--surface-2); }
+.prio-option.on     { background: var(--accent-soft); }
+.prio-option:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+
+/* ------------------------------------------------------ editing a title */
+
+.card-title-edit {
+  flex: 1;
+  min-width: 0;
+  padding: 2px 6px;
+  border: 1px solid var(--accent);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+  font-size: var(--title-font);
+  font-weight: 600;
+}
+.card-title-edit:focus { outline: 2px solid var(--ring); outline-offset: 1px; }
+
+/* The pencil appears on hover or focus, like the menu beside it. Always-on
+   affordances on every card turn a board into a field of small buttons. */
+.card-edit {
+  flex: none;
+  padding: 0 4px;
+  border: 0;
+  background: transparent;
+  color: var(--faint);
+  font-size: 12px;
+  line-height: 1;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity var(--fast) var(--ease), color var(--fast) var(--ease);
+}
+.card:hover .card-edit,
+.card:focus-within .card-edit { opacity: 1; }
+.card-edit:hover { color: var(--accent); }
+.card-edit:focus-visible { opacity: 1; outline: 2px solid var(--accent); outline-offset: 1px; }
+
+/* ---------------------------------------------------------- assigning */
+
+.assign-wrap { position: relative; display: flex; }
+
+.assign-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 1px 3px;
+  border: 1px solid transparent;
+  border-radius: 100px;
+  background: transparent;
+  font: inherit;
+  cursor: pointer;
+}
+.assign-btn:hover { border-color: var(--line); background: var(--surface-2); }
+.assign-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+
+.assign-list {
+  position: absolute;
+  z-index: 56;   /* above the scrim at 55 - see the note on .prio-list */
+  bottom: calc(100% + 5px);
+  left: 0;
+  min-width: 190px;
+  max-height: 244px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 5px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--e2);
+}
+
+.assign-list button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 5px 7px;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  font: inherit;
+  font-size: 12.5px;
+  text-align: left;
+  color: var(--ink);
+  cursor: pointer;
+}
+.assign-list button:hover { background: var(--surface-2); }
+.assign-list button.on { background: var(--accent-soft); color: var(--accent-ink); font-weight: 600; }
+.assign-tick { margin-left: auto; color: var(--accent); font-weight: 700; }
+
+.cm-empty { padding: 6px 7px; font-size: 12px; color: var(--muted); }
+
+/* -------------------------------------------------------- adding a card */
+
+.lane-add {
+  width: 100%;
+  margin-top: 6px;
+  padding: 7px 9px;
+  border: 1px dashed var(--line);
+  border-radius: var(--radius);
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color var(--fast) var(--ease), color var(--fast) var(--ease),
+              background-color var(--fast) var(--ease);
+}
+.lane-add:hover {
+  border-color: var(--accent);
+  border-style: solid;
+  color: var(--accent);
+  background: var(--accent-soft);
+}
+.lane-add:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+
+.lane-compose {
+  margin-top: 6px;
+  padding: 8px;
+  background: var(--surface);
+  border: 1px solid var(--accent);
+  border-radius: var(--radius);
+  box-shadow: var(--e1);
+}
+
+.lane-compose input {
+  width: 100%;
+  padding: 6px 8px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+  font-size: 13px;
+}
+.lane-compose input:focus { outline: 2px solid var(--ring); outline-offset: 1px; border-color: var(--accent); }
+
+.lane-compose-foot { display: flex; gap: 6px; margin-top: 7px; }
+
+.btn.sm { padding: 4px 10px; font-size: 12px; }
+
+/* ------------------------------------------------- delete, in the menu */
+
+.cm-sep {
+  display: block;
+  height: 1px;
+  margin: 5px 0;
+  background: var(--line-soft);
+}
+
+.cm-danger {
+  color: var(--c-red) !important;
+  font-weight: 600;
+}
+.cm-danger:hover { background: var(--c-red-bg) !important; }
+
+/* ------------------------------------------------------------- phones */
+
+@media (max-width: 700px) {
+  /* Hover cannot reveal anything on a touch screen, so the two controls
+     that hide behind it are simply always visible here. */
+  .card-edit, .prio.empty { opacity: 1; }
+
+  .prio-list, .assign-list { min-width: 170px; }
+
+  /* A lane is the full width of the screen, so the add field is too. */
+  .lane-compose input { font-size: 16px; }  /* 16px stops iOS zooming on focus */
+}

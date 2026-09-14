@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
 import { NavLink, useLocation } from 'react-router-dom'
-import { useAuth } from '../state/auth'
 import { useClients } from '../state/clients'
 import { formatDuration, useTimer } from '../state/timer'
 import { colourClass } from './Pill'
@@ -17,9 +16,6 @@ import type { Todo } from '../lib/types'
 export default function TopBar() {
   const { clients, selected, selectedId, select } = useClients()
   const location = useLocation()
-  const { user } = useAuth()
-  // The People screen is about access, so it follows the access rule.
-  const canManage = user?.role === 'ADMIN'
   const { running, elapsed, stop } = useTimer()
   const [open, setOpen] = useState(false)
   const [query, setQuery] = useState('')
@@ -64,7 +60,10 @@ export default function TopBar() {
     { to: '/', label: 'Dashboard', end: true },
     { to: '/clients', label: 'Clients', end: false },
     { to: '/team', label: 'Team & time', end: false },
-    ...(canManage ? [{ to: '/people', label: 'People', end: false }] : []),
+    // People and access moved into Settings, so this strip lost an entry
+    // rather than gaining one. Settings is last because it is the tab you
+    // reach for least often.
+    { to: '/settings', label: 'Settings', end: false },
   ]
   const activeNav =
     navItems

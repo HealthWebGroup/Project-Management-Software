@@ -8,6 +8,7 @@ import { BrowserRouter } from 'react-router-dom'
 import App from './App'
 import { AuthProvider } from './state/auth'
 import { applyDensity, readDensity } from './components/DensityToggle'
+import { applyTheme, readTheme } from './pages/SettingsPage'
 import './styles.css'
 
 // Before the first paint, not in an effect after it. Reading the saved row
@@ -15,6 +16,9 @@ import './styles.css'
 // density and then jumps, which is exactly the kind of flicker that makes
 // an interface feel cheap.
 applyDensity(readDensity())
+// Same reasoning for the theme: applying it after mount means a
+// white flash before a dark interface, on every single load.
+applyTheme(readTheme())
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>

@@ -88,6 +88,22 @@ export interface CellValue {
   label?: string
 }
 
+/**
+ * Priority is a field on the item itself, not a board column, so every
+ * board has it and it means the same thing on all of them.
+ */
+export type Priority = 'NONE' | 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL'
+
+export const PRIORITIES: Priority[] = ['NONE', 'LOW', 'MEDIUM', 'HIGH', 'CRITICAL']
+
+export const PRIORITY_LABEL: Record<Priority, string> = {
+  NONE: 'No priority',
+  LOW: 'Low',
+  MEDIUM: 'Medium',
+  HIGH: 'High',
+  CRITICAL: 'Critical',
+}
+
 export interface Item {
   id: string
   groupId?: string
@@ -95,6 +111,7 @@ export interface Item {
   clientId?: string
   title: string
   sortOrder: number
+  priority: Priority
   cells: Record<string, CellValue>
   createdAt?: string
   updatedAt?: string

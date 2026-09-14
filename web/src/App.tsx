@@ -19,6 +19,7 @@ import ClientPage from './pages/ClientPage'
 import TeamPage from './pages/TeamPage'
 import PeoplePage from './pages/PeoplePage'
 import SetupPage from './pages/SetupPage'
+import SettingsPage from './pages/SettingsPage'
 import Shell from './components/Shell'
 import ErrorBoundary from './components/ErrorBoundary'
 
@@ -62,6 +63,7 @@ export default function App() {
         <Route path="clients/:clientId" element={<ClientPage />} />
         <Route path="team" element={<TeamPage />} />
         <Route path="people" element={<PeoplePage />} />
+        <Route path="settings" element={<SettingsPage />} />
       </Route>
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

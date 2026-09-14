@@ -171,6 +171,18 @@
   box-shadow: var(--e2), var(--lip);
   border-color: color-mix(in srgb, var(--accent) 30%, var(--line));
 }
+
+/* Hold the card still while a menu opened from it is on screen.
+   The priority and assign popovers are anchored inside the card, so the
+   2px hover lift moved the menu the moment the pointer travelled from the
+   button down into it — the options slid out from under the cursor and
+   the first click landed on nothing. Found by a browser test that could
+   not click "Critical" because the target never stopped moving. */
+.card:hover:has(.prio-list),
+.card:hover:has(.assign-list),
+.card:hover:has(.card-menu-list) {
+  transform: none;
+}
 /* A card being dragged tilts. It is a small thing and it makes the whole
    interaction feel physical rather than notional. */
 .card.dragging {
@@ -326,8 +338,8 @@
   gap: 0;
   width: min(1040px, 100%);
   background: var(--glass);
-  backdrop-filter: blur(24px) saturate(150%);
-  -webkit-backdrop-filter: blur(24px) saturate(150%);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
   border: 1px solid color-mix(in srgb, var(--line) 60%, transparent);
   border-radius: 20px;
   box-shadow: var(--e3), var(--lip);
@@ -341,10 +353,11 @@
   display: flex;
   flex-direction: column;
   gap: 26px;
-  color: #EAF6F6;
+  color: var(--ink);
   background:
-    radial-gradient(28rem 22rem at 18% 10%, color-mix(in srgb, var(--accent-hot) 55%, transparent), transparent 65%),
-    linear-gradient(150deg, #0A4B55, #062A33 62%, #041D24);
+    radial-gradient(30rem 24rem at 16% 8%, color-mix(in srgb, var(--accent) 11%, transparent), transparent 68%),
+    var(--accent-soft);
+  border-right: 1px solid var(--line);
   overflow: hidden;
 }
 
@@ -361,7 +374,7 @@
   background: repeating-radial-gradient(
     circle,
     transparent 0 26px,
-    rgba(255, 255, 255, .085) 26px 27.5px
+    color-mix(in srgb, var(--accent) 13%, transparent) 26px 27.5px
   );
   animation: drift 26s ease-in-out infinite alternate;
   pointer-events: none;
@@ -371,13 +384,12 @@
   to   { transform: translate3d(-24px, -18px, 0) scale(1.06); }
 }
 
-.auth-pitch .auth-brand h1 { color: #fff; font-size: 21px; }
-.auth-pitch .auth-brand p { color: color-mix(in srgb, var(--accent-hot) 75%, #fff); }
+.auth-pitch .auth-brand h1 { color: var(--ink); font-size: 21px; }
+.auth-pitch .auth-brand p { color: var(--accent-ink); }
 .auth-pitch .auth-mark {
-  background: rgba(255, 255, 255, .12);
-  border: 1px solid rgba(255, 255, 255, .22);
+  background: var(--surface);
+  border: 1px solid var(--line);
   box-shadow: none;
-  backdrop-filter: blur(6px);
 }
 
 .auth-lede {
@@ -388,7 +400,7 @@
   font-weight: 600;
   line-height: 1.22;
   letter-spacing: -0.028em;
-  color: #fff;
+  color: var(--ink);
   max-width: 22ch;
   text-wrap: balance;
 }
@@ -510,8 +522,8 @@ input[type='checkbox'], input[type='radio'] { accent-color: var(--accent); }
 .setup-card {
   width: min(680px, 100%);
   background: var(--glass);
-  backdrop-filter: blur(24px) saturate(150%);
-  -webkit-backdrop-filter: blur(24px) saturate(150%);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
   border: 1px solid color-mix(in srgb, var(--line) 60%, transparent);
   border-radius: 20px;
   box-shadow: var(--e3), var(--lip);
