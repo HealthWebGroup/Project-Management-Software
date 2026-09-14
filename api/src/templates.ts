@@ -24,12 +24,6 @@ const WORK_STATUS = [
   label('done', 'Done', 'green'),
 ]
 
-const PRIORITY = [
-  label('low', 'Low', 'grey'),
-  label('medium', 'Medium', 'blue'),
-  label('high', 'High', 'amber'),
-  label('critical', 'Critical', 'red'),
-]
 
 const OWNER: TemplateColumn = { title: 'Owner', type: 'PEOPLE', settings: {}, width: 110 }
 const STATUS: TemplateColumn = {
@@ -49,7 +43,11 @@ export const TEMPLATES: Record<BoardTemplate, Template> = {
     columns: [
       OWNER,
       STATUS,
-      { title: 'Priority', type: 'STATUS', settings: { labels: PRIORITY }, width: 120 },
+      // No "Priority" column here any more. Priority is a real field on
+      // every item (migration 0005) with its own column in the table and
+      // its own control on a kanban card, so a template that also created
+      // a STATUS column called Priority gave every new board two columns
+      // with the same heading and different meanings.
       { title: 'Timeline', type: 'TIMELINE', settings: {}, width: 190 },
       DUE,
       {

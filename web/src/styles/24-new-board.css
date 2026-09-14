@@ -104,3 +104,17 @@
 /* A Link styled as a button needs the button's box, which `.btn` gives it,
    plus the centring an <a> does not inherit. */
 a.btn { display: inline-flex; align-items: center; justify-content: center; text-decoration: none; }
+
+/* ------------------------------------------- a client with no boards yet */
+
+/* The sidebar lists every client now, including ones with nothing under
+   them. An empty client needs a line saying so and a way to fix it - a
+   silently empty branch just looks broken. */
+.project-none {
+  margin: 2px 0 6px 30px;
+  font-size: 12px;
+  color: var(--faint);
+  line-height: 1.4;
+}
+.project-none a { color: var(--accent); text-decoration: none; font-weight: 600; }
+.project-none a:hover { text-decoration: underline; }

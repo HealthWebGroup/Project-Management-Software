@@ -27,7 +27,7 @@ import { colourClass } from '../components/Pill'
 export default function BoardPage() {
   const { boardId } = useParams<{ boardId: string }>()
   const { user } = useAuth()
-  const { clients, selectedId: selectedClientId, selected: selectedClient } = useClients()
+  const { clients, selectedId: selectedClientId } = useClients()
   const { running, start, stop } = useTimer()
   const [view, setView] = useState<'table' | 'kanban' | 'timeline'>('table')
   const [board, setBoard] = useState<BoardDetail | null>(null)
@@ -82,6 +82,12 @@ export default function BoardPage() {
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
   }, [])
+
+  /** The client this board belongs to, if any. Not the selected one. */
+  const boardClient = useMemo(
+    () => (board?.clientId ? clients.find((c) => c.id === board.clientId) ?? null : null),
+    [board?.clientId, clients],
+  )
 
   const flash = useCallback((message: string) => {
     setNotice(message)
@@ -343,11 +349,21 @@ export default function BoardPage() {
   const visibleItems = useMemo(() => {
     if (!board) return []
     const needle = search.trim().toLowerCase()
+    // A board that belongs to a client is ALREADY scoped to that client -
+    // everything on it is their work. Applying the top-bar client filter on
+    // top of that meant opening such a board while a different client was
+    // selected hid every single row: the board read as empty and the work
+    // looked lost. The comment here used to claim "a board-level client
+    // wins" while the code below never looked at board.clientId at all.
+    const filterByClient = !board.clientId
+
     return board.items.filter((item) => {
       if (item.parentId) return false
-      // A board-level client wins; otherwise filter item by item. Items with
-      // no client are internal and stay visible whatever is selected.
-      if (selectedClientId && item.clientId && item.clientId !== selectedClientId) return false
+      // Only on a board with no client of its own. Items with no client are
+      // internal and stay visible whatever is selected.
+      if (filterByClient && selectedClientId && item.clientId && item.clientId !== selectedClientId) {
+        return false
+      }
       if (needle && !item.title.toLowerCase().includes(needle)) return false
       if (mineOnly && peopleColumnId && user) {
         const ids = item.cells[peopleColumnId]?.userIds ?? []
@@ -375,10 +391,17 @@ export default function BoardPage() {
                 </span>
               )}
               {readOnly && <span className="sens view">View only</span>}
-              {selectedClient && (
-                <span className={`sens client ${colourClass(selectedClient.colour)}`}>
-                  {selectedClient.name}
+              {/* The board's OWN client, not whatever is chosen in the top
+                  bar. This showed `selectedClient`, so opening a Harbour
+                  Health board with Mori King selected labelled the board
+                  "Mori King Limited" - the badge asserted something false
+                  about whose work you were looking at. */}
+              {boardClient ? (
+                <span className={`sens client ${colourClass(boardClient.colour)}`}>
+                  {boardClient.name}
                 </span>
+              ) : (
+                <span className="sens client grey">Internal</span>
               )}
             </div>
           </div>

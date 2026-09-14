@@ -93,12 +93,17 @@ export default function ClientNav({
       else grouped.set(board.clientId, [board])
     }
 
-    // Clients the person can see, in the order the clients list gives them,
-    // and only those with work — a client with no projects is noise in a
-    // sidebar and belongs on the Clients page instead.
+    // Every client the person can see, in the order the clients list gives
+    // them — including ones with no boards yet.
+    //
+    // This used to drop a client with no projects, on the reasoning that it
+    // was noise. In practice it meant a client you had just added was
+    // missing from the only navigation there is, so there was no way to
+    // reach it and nothing to explain the absence. An empty client is not
+    // noise; it is a client waiting for its first board, and the sidebar is
+    // exactly where you would look for it.
     const rows = clients
       .map((client) => ({ client, boards: grouped.get(client.id) ?? [] }))
-      .filter((row) => row.boards.length > 0)
 
     // A board whose client this person cannot see would otherwise vanish
     // entirely. Keep it, under its own heading, rather than hiding work.
@@ -152,7 +157,14 @@ export default function ClientNav({
                     </NavLink>
                   </div>
 
-                  {isOpen && (
+                  {isOpen && boards.length === 0 && (
+                    <p className="project-none">
+                      No boards yet —{' '}
+                      <NavLink to={`/clients/${client.id}`}>add one</NavLink>
+                    </p>
+                  )}
+
+                  {isOpen && boards.length > 0 && (
                     <ul className="project-list">
                       {boards.map((board) => (
                         <li key={board.id}>
