@@ -1,0 +1,209 @@
+/* ---------------------------------------------------------------------
+   Who can see this client.
+
+   Two lists that must never be confused at a glance: people who can see a
+   client's work, and people who cannot. The separation is done with the
+   heading, a left edge and the text — never colour alone, because the one
+   reading this may be the person who cannot distinguish the two hues, and
+   getting it wrong here means leaving commercial notes open.
+
+   The green edge on "can see" is not reassurance. It is the same signal
+   the status palette uses for "this is the case", and the red-brown edge
+   on "cannot" is the same for "this is not" — so the pairing reads the
+   way the rest of the interface reads.
+   --------------------------------------------------------------------- */
+
+.vis {
+  margin-top: 14px;
+  border-top: 1px solid var(--line);
+  padding-top: 12px;
+}
+
+.vis-group + .vis-group { margin-top: 14px; }
+
+.vis-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 6px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.vis-count {
+  min-width: 18px;
+  padding: 0 5px;
+  border-radius: 9px;
+  background: var(--surface-3);
+  color: var(--ink-soft);
+  font-size: 11px;
+  font-weight: 600;
+  text-align: center;
+  letter-spacing: 0;
+}
+
+.vis-rows {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.vis-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 8px 5px 7px;
+  border-radius: var(--radius);
+  border-left: 3px solid var(--c-green);
+  background: var(--surface-2);
+  font-size: 13px;
+  min-width: 0;
+}
+
+/* Present by role, not by this client's team: stated, but not competing
+   for attention with the people the team list actually controls. */
+.vis-row.by-role {
+  border-left-color: var(--line);
+  background: transparent;
+  color: var(--ink-soft);
+}
+
+/* Named, not positional. Which group is which decides whether somebody
+   reads "private" or "not private", and that must not depend on one list
+   happening to be rendered second. */
+.vis-group.denied .vis-row {
+  border-left-color: var(--c-red);
+  background: transparent;
+}
+
+.vis-name {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  line-height: 1.25;
+  color: var(--ink);
+}
+
+.vis-name small {
+  font-size: 11px;
+  color: var(--muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* The name and its badge share a line; the job title sits under both. The
+   column flex above would otherwise stretch the badge to the full width. */
+.vis-top {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  min-width: 0;
+}
+
+.vis-top > :first-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.vis-lead {
+  flex: none;
+  padding: 0 5px;
+  border-radius: 3px;
+  background: var(--accent-soft);
+  color: var(--accent-ink);
+  font-size: 10px;
+  font-style: normal;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  vertical-align: 1px;
+}
+
+.vis-why {
+  margin-left: auto;
+  padding-left: 10px;
+  font-size: 11px;
+  color: var(--muted);
+  text-align: right;
+  white-space: nowrap;
+}
+
+/* An unsaved tick. Marked in words as well as weight — "Adding" and
+   "Removing" say what the Save button is about to do. */
+.vis-row.changed {
+  background: var(--brass-soft);
+  border-left-color: var(--brass);
+}
+
+.vis-change {
+  flex: none;
+  margin-left: 8px;
+  padding: 1px 6px;
+  border-radius: 3px;
+  background: var(--brass);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.vis-row.changed .vis-why { color: var(--brass); }
+
+.vis-note {
+  margin: 8px 0 0;
+  font-size: 11.5px;
+  line-height: 1.45;
+  color: var(--muted);
+}
+
+.vis-note strong { color: var(--ink-soft); font-weight: 600; }
+
+/* If the check failed, say so plainly. Silence would read as "nobody
+   else can see it", which is the one wrong answer that matters. */
+.vis-failed {
+  margin: 12px 0 0;
+  padding: 8px 10px;
+  border-radius: var(--radius);
+  background: var(--c-red-bg);
+  color: var(--c-red);
+  font-size: 12px;
+}
+
+/* Inside the team dialog there are now two long lists — the people to tick
+   and the answer they produce — and together they pushed the Save button
+   below the fold. Each gets its own share of the height and its own
+   scrollbar, so the dialog's actions stay where they can be reached. On the
+   client page none of this applies: there the panel simply scrolls with
+   the page. */
+.dialog .people-list:has(~ .vis) { max-height: 30vh; }
+.dialog .vis { max-height: 34vh; overflow-y: auto; }
+
+@media (max-width: 560px) {
+  .vis-why { display: none; }
+  .vis-name small { white-space: normal; }
+}
+
+/* The honest headline when the team list decides nothing: every person in
+   the organisation outranks it. Brass, the colour this interface uses for
+   "attend to this", not red — nothing is broken. */
+.vis-flag {
+  margin: 0 0 12px;
+  padding: 8px 10px;
+  border-radius: var(--radius);
+  border-left: 3px solid var(--brass);
+  background: var(--brass-soft);
+  color: var(--ink-soft);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.vis-flag em { font-style: normal; font-weight: 600; color: var(--ink); }

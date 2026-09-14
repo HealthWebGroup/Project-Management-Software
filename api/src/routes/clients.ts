@@ -4,7 +4,7 @@ import { isoMinus, newId, now, recordActivity } from '../db'
 import { HttpError } from '../errors'
 import { LIMITS, email, httpUrl, isoDate, list, oneOf, optionalText, readJson, text } from '../validate'
 import { boardStatements } from './boards'
-import type { ClientRole, ClientStatus, Env, Vars } from '../types'
+import type { ClientRole, ClientStatus, Env, Role, Vars } from '../types'
 
 export const clients = new Hono<{ Bindings: Env; Variables: Vars }>()
 
@@ -273,6 +273,114 @@ clients.patch('/clients/:clientId', async (c) => {
 })
 
 /** Replaces the whole team for a client - the screen sends the full list. */
+/**
+ * Who can actually see this client, and why.
+ *
+ * Computed on the server on purpose. The rule lives in two places in the
+ * code — `clientIdsFor` in auth.ts decides what goes in a principal's
+ * client list, and `accessTo` in access.ts checks a board against it — and
+ * a third copy written in the interface would be free to drift from both.
+ * When the drifting copy is the one a person reads before deciding whether
+ * a client's commercial notes are safe, that is not a cosmetic bug.
+ *
+ * So this mirrors those two functions and nothing else:
+ *
+ *   ADMIN or MANAGER  -> sees every client, whatever the team list says
+ *   GUEST             -> never, not even on the team; a guest reaches a
+ *                        board only by being named on that one board
+ *   anyone else       -> sees it only if they are on the team
+ *
+ * That guest line was wrong in the first draft of this route, which said a
+ * guest on the team could see the client. `accessTo` returns NONE for a
+ * guest on an INTERNAL board no matter what client they are assigned to, so
+ * the screen would have promised access the application then refuses. The
+ * cross-check in visibility.test.ts is what found it.
+ *
+ * What it deliberately does NOT try to answer: someone can also be named
+ * on a single board through Board access, which grants that one board
+ * without granting the client. The interface says so rather than this
+ * route guessing at it.
+ */
+clients.get('/clients/:clientId/visibility', async (c) => {
+  const principal = c.get('principal')
+
+  const client = await c.env.DB
+    .prepare(`select id, organisation_id, name from client where id = ? and organisation_id = ?`)
+    .bind(c.req.param('clientId'), principal.organisationId)
+    .first<{ id: string; name: string }>()
+  if (!client) throw HttpError.notFound('Client')
+
+  // You may only ask who can see a client you can see yourself. Otherwise
+  // this route hands a member the name of every client in the book, plus a
+  // map of who works on what - which is most of what the scoping on
+  // GET /clients exists to withhold. "Not found" rather than "forbidden",
+  // so it does not confirm the client exists either.
+  if (!isManager(principal) && !principal.clientIds.includes(client.id)) {
+    throw HttpError.notFound('Client')
+  }
+
+  const [people, team] = await Promise.all([
+    c.env.DB.prepare(
+      `select id, full_name, job_title, role from app_user
+        where organisation_id = ? and status = 'ACTIVE' order by full_name`,
+    ).bind(principal.organisationId).all<{
+      id: string; full_name: string; job_title: string | null; role: Role
+    }>(),
+
+    c.env.DB.prepare(
+      `select user_id, role_on_client from client_member where client_id = ?`,
+    ).bind(client.id).all<{ user_id: string; role_on_client: ClientRole }>(),
+  ])
+
+  const onTeam = new Map(team.results.map((t) => [t.user_id, t.role_on_client]))
+
+  const rows = people.results.map((u) => {
+    const byRole = u.role === 'ADMIN' || u.role === 'MANAGER'
+    const assigned = onTeam.get(u.id)
+    // A guest is not granted anything by being on the team. Keeping this
+    // one line honest is the whole point of the screen.
+    const canSee = byRole || (u.role !== 'GUEST' && assigned !== undefined)
+    return {
+      userId: u.id,
+      fullName: u.full_name,
+      jobTitle: u.job_title ?? undefined,
+      role: u.role,
+      onTeam: assigned !== undefined,
+      leadOnClient: assigned === 'LEAD',
+      canSee,
+      /**
+       * What the team list can and cannot do for this person.
+       *
+       * The team dialog has to show the effect of a tick BEFORE it is saved,
+       * and the only honest way to do that without copying the role rules
+       * into the browser is to send the rules' conclusion as data. So:
+       *
+       *   always        - by role; ticking or unticking changes nothing
+       *   when-assigned - the tick is exactly what decides it
+       *   never         - a guest; only an individual board can let them in
+       *
+       * The interface then computes nothing but
+       * `always || (when-assigned && ticked)`, which cannot drift from the
+       * roles because it does not know them.
+       */
+      access: byRole ? 'always' : u.role === 'GUEST' ? 'never' : 'when-assigned',
+      // Why, in the order that actually decides it: a manager on the team
+      // still sees it because of the role, and saying "assigned" there
+      // would imply that removing them from the team would take it away.
+      reason: byRole
+        ? (u.role === 'ADMIN' ? 'administrator' : 'manager')
+        : u.role === 'GUEST' ? 'guest'
+        : assigned !== undefined ? 'assigned'
+        : 'none',
+    }
+  })
+
+  return c.json({
+    clientName: client.name,
+    people: rows,
+  })
+})
+
 clients.put('/clients/:clientId/team', async (c) => {
   const principal = c.get('principal')
   if (!isManager(principal)) {

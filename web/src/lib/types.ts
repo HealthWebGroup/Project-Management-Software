@@ -203,6 +203,30 @@ export interface ClientMember {
   roleOnClient: ClientRole
 }
 
+/**
+ * One person on the "who can see this client" answer.
+ *
+ * `canSee` is the saved truth and `access` is what the team list can do
+ * about it — see GET /clients/:id/visibility for why both are sent. The
+ * interface must never work either of them out from `role`.
+ */
+export interface ClientVisibilityPerson {
+  userId: string
+  fullName: string
+  jobTitle?: string
+  role: Role
+  onTeam: boolean
+  leadOnClient: boolean
+  canSee: boolean
+  access: 'always' | 'when-assigned' | 'never'
+  reason: 'administrator' | 'manager' | 'assigned' | 'guest' | 'none'
+}
+
+export interface ClientVisibility {
+  clientName: string
+  people: ClientVisibilityPerson[]
+}
+
 export interface Client {
   id: string
   name: string

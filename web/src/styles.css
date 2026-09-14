@@ -83,3 +83,6 @@
 
 /* Review notes: what is actually happening with a task */
 @import './styles/25-review-notes.css';
+
+/* Who can see a client: the team list, and what it actually grants */
+@import './styles/26-visibility.css';

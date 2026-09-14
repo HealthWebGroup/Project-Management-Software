@@ -13,6 +13,7 @@ import { useClients } from '../state/clients'
 import { formatMinutes } from '../state/timer'
 import { Avatar, colourClass } from '../components/Pill'
 import Dialog from '../components/Dialog'
+import ClientVisibilityList from '../components/ClientVisibility'
 
 const COLOURS = ['blue', 'teal', 'green', 'amber', 'red', 'violet', 'grey']
 const STATUSES: ClientStatus[] = ['PROSPECT', 'ACTIVE', 'PAUSED', 'ARCHIVED']
@@ -444,6 +445,12 @@ function TeamDialog({
           )
         })}
       </div>
+      {/* The result of the ticks above, before they are saved. Putting it
+          in the same dialog is the point: "who can see this" is the
+          question the ticking is trying to answer, and answering it on
+          another screen means nobody checks. */}
+      <ClientVisibilityList clientId={client.id} pending={assigned} />
+
       <div className="dialog-actions">
         <button type="button" className="btn ghost" onClick={onClose}>
           Cancel

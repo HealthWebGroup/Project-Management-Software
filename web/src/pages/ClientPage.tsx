@@ -20,6 +20,7 @@ import NewBoardDialog from '../components/NewBoardDialog'
 import type { Dashboard, Workspace } from '../lib/types'
 import { useClients } from '../state/clients'
 import { colourClass } from '../components/Pill'
+import ClientVisibilityList from '../components/ClientVisibility'
 
 function formatMinutes(total: number): string {
   if (!total) return '0h'
@@ -201,6 +202,13 @@ export default function ClientPage() {
               ))}
             </ul>
           )}
+
+          {/* Assigning a team and then having no way to check the result is
+              how a client ends up assumed private when it is not. */}
+          <div className="dash-head sub">
+            <h2>Who can see this client</h2>
+          </div>
+          <ClientVisibilityList clientId={client.id} />
         </section>
       </div>
 
