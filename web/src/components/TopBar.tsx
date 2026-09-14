@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { NavLink, useLocation } from 'react-router-dom'
+import { NavLink, useLocation, useNavigate } from 'react-router-dom'
 import { useClients } from '../state/clients'
 import { formatDuration, useTimer } from '../state/timer'
 import { colourClass } from './Pill'
@@ -16,6 +16,7 @@ import type { Todo } from '../lib/types'
 export default function TopBar() {
   const { clients, selected, selectedId, select } = useClients()
   const location = useLocation()
+  const navigate = useNavigate()
   const { running, elapsed, stop } = useTimer()
   const [open, setOpen] = useState(false)
   const [query, setQuery] = useState('')
@@ -47,6 +48,20 @@ export default function TopBar() {
       .then((rows) => !cancelled && setOpenTasks(rows.filter((t) => !t.done).length))
       .catch(() => !cancelled && setOpenTasks(null))
   }, [tasksOpen])
+
+  /**
+   * Picking a client takes you to that client, rather than only changing a
+   * filter and leaving you where you were.
+   *
+   * Choosing "Mori King" and staying on another client's board is the
+   * behaviour that made the switcher feel broken: something clearly
+   * happened, and the screen did not move. A switcher should switch.
+   */
+  function choose(clientId: string | null) {
+    select(clientId)
+    setOpen(false)
+    navigate(clientId ? `/clients/${clientId}` : '/')
+  }
 
   const needle = query.trim().toLowerCase()
   const shown = clients.filter(
@@ -94,10 +109,7 @@ export default function TopBar() {
             />
             <button
               className={`client-option ${selectedId === null ? 'on' : ''}`}
-              onClick={() => {
-                select(null)
-                setOpen(false)
-              }}
+              onClick={() => choose(null)}
             >
               <span className="opt-code all">ALL</span>
               <span className="opt-name">All clients</span>
@@ -106,10 +118,7 @@ export default function TopBar() {
               <button
                 key={client.id}
                 className={`client-option ${selectedId === client.id ? 'on' : ''}`}
-                onClick={() => {
-                  select(client.id)
-                  setOpen(false)
-                }}
+                onClick={() => choose(client.id)}
               >
                 <span className={`opt-code ${colourClass(client.colour)}`}>{client.code}</span>
                 <span className="opt-name">{client.name}</span>

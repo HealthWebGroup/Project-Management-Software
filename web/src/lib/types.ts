@@ -104,6 +104,17 @@ export const PRIORITY_LABEL: Record<Priority, string> = {
   CRITICAL: 'Critical',
 }
 
+/**
+ * The most recent review note on a task — what is actually going on with
+ * it, in someone's words. Shown on the board itself rather than one click
+ * deep, because a note nobody reads is a note nobody writes.
+ */
+export interface LastNote {
+  body: string
+  author?: string
+  at: string
+}
+
 export interface Item {
   id: string
   groupId?: string
@@ -112,6 +123,7 @@ export interface Item {
   title: string
   sortOrder: number
   priority: Priority
+  lastNote?: LastNote
   cells: Record<string, CellValue>
   createdAt?: string
   updatedAt?: string

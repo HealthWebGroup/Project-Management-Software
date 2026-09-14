@@ -10,6 +10,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import type { BoardDetail, CellValue, Client, Item, Priority } from '../lib/types'
 import PriorityPill from './PriorityPill'
 import Popover from './Popover'
+import ReviewNote from './ReviewNote'
 import { Avatar, colourClass } from './Pill'
 import { daysUntil } from './CellEditor'
 
@@ -35,6 +36,7 @@ interface Props {
   onAddItem: (groupId: string, title: string) => Promise<Item | null>
   onRename: (itemId: string, title: string) => void
   onSetPriority: (itemId: string, priority: Priority) => void
+  onAddNote: (itemId: string, body: string) => Promise<void>
   onDelete: (itemId: string) => void
 }
 
@@ -42,7 +44,7 @@ const UNSET = '__unset__'
 
 export default function KanbanView({
   board, items, clients, readOnly, onSetCell, onSetClient, onOpenItem,
-  onAddItem, onRename, onSetPriority, onDelete,
+  onAddItem, onRename, onSetPriority, onDelete, onAddNote,
 }: Props) {
   const statusColumns = useMemo(
     () => board.columns.filter((c) => c.type === 'STATUS'),
@@ -264,6 +266,16 @@ export default function KanbanView({
                         <span style={{ width: `${Math.max(0, Math.min(100, progress))}%` }} />
                       </span>
                     )}
+
+                    {/* What is actually happening with this task. The one
+                        thing a status column cannot tell you. */}
+                    <ReviewNote
+                      note={item.lastNote}
+                      readOnly={readOnly}
+                      variant="card"
+                      onAdd={(body) => onAddNote(item.id, body)}
+                      onOpenHistory={() => onOpenItem(item.id)}
+                    />
 
                     <footer className="card-foot">
                       {/* Priority first in the footer: it is the thing people

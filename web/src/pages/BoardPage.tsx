@@ -16,6 +16,7 @@ import CellEditor from '../components/CellEditor'
 import ItemPanel from '../components/ItemPanel'
 import KanbanView from '../components/KanbanView'
 import PriorityPill from '../components/PriorityPill'
+import ReviewNote from '../components/ReviewNote'
 import TimelineView from '../components/TimelineView'
 import AutomationsDialog from '../components/AutomationsDialog'
 import BoardAccessDialog from '../components/BoardAccessDialog'
@@ -233,6 +234,48 @@ export default function BoardPage() {
       }
     },
     [flash],
+  )
+
+  /**
+   * Append a review note and show it immediately.
+   *
+   * The note is written optimistically with the current user's name so the
+   * row updates as you hit Enter. The server is the authority on the
+   * timestamp and author, but waiting for it to say what you just typed
+   * makes the board feel like it is arguing with you.
+   */
+  const addNote = useCallback(
+    async (itemId: string, body: string) => {
+      const optimistic = { body, author: user?.fullName, at: new Date().toISOString() }
+      let previous: BoardDetail['items'][number]['lastNote']
+      setBoard((current) => {
+        if (!current) return current
+        return {
+          ...current,
+          items: current.items.map((i) => {
+            if (i.id !== itemId) return i
+            previous = i.lastNote
+            return { ...i, lastNote: optimistic }
+          }),
+        }
+      })
+      try {
+        await api.post(`/api/items/${itemId}/updates`, { body })
+      } catch (e) {
+        setBoard((current) =>
+          current
+            ? {
+                ...current,
+                items: current.items.map((i) =>
+                  i.id === itemId ? { ...i, lastNote: previous } : i,
+                ),
+              }
+            : current,
+        )
+        flash(e instanceof ApiError ? e.message : 'Could not save that note.')
+      }
+    },
+    [flash, user],
   )
 
   const renameItem = useCallback(
@@ -477,6 +520,7 @@ export default function BoardPage() {
           onRename={renameItem}
           onSetPriority={setPriority}
           onDelete={deleteItem}
+          onAddNote={addNote}
         />
       ) : (
       <div className="board-scroll">
@@ -522,7 +566,7 @@ export default function BoardPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {rows.map((item) => (
+                    {rows.flatMap((item) => [
                       <tr key={item.id} className={`row ${colourClass(group.colour)}`}>
                         <td className="col-item">
                           <div className="item-cell">
@@ -584,8 +628,23 @@ export default function BoardPage() {
                             </div>
                           )}
                         </td>
-                      </tr>
-                    ))}
+                      </tr>,
+                      /* The review note, on its own row directly under the
+                         task it belongs to. A second <tr> rather than a cell
+                         inside the first: a note is a sentence, and a
+                         sentence squeezed into one column of an eight-column
+                         grid is unreadable. This one spans the lot. */
+                      <tr key={`${item.id}-note`} className="row-note">
+                        <td colSpan={board.columns.length + 3}>
+                          <ReviewNote
+                            note={item.lastNote}
+                            readOnly={readOnly}
+                            onAdd={(body) => addNote(item.id, body)}
+                            onOpenHistory={() => setOpenItemId(item.id)}
+                          />
+                        </td>
+                      </tr>,
+                    ])}
                     {rows.length === 0 && (
                       <tr className="row empty">
                         <td colSpan={board.columns.length + 3}>Empty</td>

@@ -1,0 +1,165 @@
+/* =====================================================================
+   Review notes
+
+   The note is the sentence that explains why a task is where it is:
+   "emailed them, waiting to hear back", "sitting in deployment". A status
+   label cannot say that, and until now the only place to write it was a
+   panel nobody opened.
+
+   Two renderings of the same component. On a table row it gets a row of
+   its own spanning every column, because a sentence squeezed into one
+   column of an eight-column grid is unreadable. On a kanban card it is
+   already in a narrow box, so it just sits in the flow.
+
+   Deliberately quiet: indented, smaller, no border of its own. It is
+   commentary on the row above it, and it should read as commentary rather
+   than competing with the task.
+   ===================================================================== */
+
+.row-note > td {
+  padding: 0 0 6px calc(var(--row-x) + 14px);
+  border-top: 0;
+  background: inherit;
+}
+
+/* The line that ties the note to the task above it. Cheaper to read than
+   a box, and it survives the zebra striping underneath. */
+.note-row {
+  position: relative;
+  padding-left: 12px;
+  border-left: 2px solid var(--line);
+}
+
+.note {
+  display: block;
+  max-width: 88ch;
+  font-size: 12.5px;
+  line-height: 1.45;
+}
+
+.note-body {
+  margin: 0;
+  color: var(--ink-soft);
+  white-space: pre-wrap;   /* a note is prose; keep the line breaks */
+  overflow-wrap: anywhere; /* and never let a pasted URL widen the board */
+}
+
+.note-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 2px;
+  font-size: 11px;
+  color: var(--faint);
+}
+
+.note-who  { font-weight: 650; color: var(--muted); }
+.note-when { font-variant-numeric: tabular-nums; }
+
+.note-add, .note-history {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--accent);
+  font: inherit;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity var(--fast) var(--ease);
+}
+.row:hover + .row-note .note-add,
+.row:hover + .row-note .note-history,
+.row-note:hover .note-add,
+.row-note:hover .note-history,
+.card:hover .note-add,
+.card:hover .note-history,
+.note:focus-within .note-add,
+.note:focus-within .note-history { opacity: 1; }
+.note-add:hover, .note-history:hover { text-decoration: underline; }
+.note-add:focus-visible, .note-history:focus-visible {
+  opacity: 1; outline: 2px solid var(--accent); outline-offset: 2px;
+}
+
+/* ------------------------------------------------------------- empty */
+
+/* Nothing written yet. Faint until the row is approached, so a board of
+   forty untouched tasks is not forty invitations. */
+.note.empty {
+  padding: 1px 0;
+  border: 0;
+  background: transparent;
+  color: var(--faint);
+  font-size: 11.5px;
+  font-weight: 500;
+  text-align: left;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity var(--fast) var(--ease), color var(--fast) var(--ease);
+}
+.row:hover + .row-note .note.empty,
+.row-note:hover .note.empty,
+.card:hover .note.empty { opacity: 1; }
+.note.empty:hover { color: var(--accent); }
+.note.empty:focus-visible { opacity: 1; outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* ------------------------------------------------------------ writing */
+
+.note.writing { max-width: 640px; }
+
+.note textarea {
+  width: 100%;
+  padding: 7px 9px;
+  border: 1px solid var(--accent);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+  font-size: 13px;
+  line-height: 1.45;
+  resize: vertical;
+}
+.note textarea:focus { outline: 2px solid var(--ring); outline-offset: 1px; }
+
+.note-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 6px;
+  flex-wrap: wrap;
+}
+
+.note-hint { font-size: 11px; color: var(--faint); }
+
+/* --------------------------------------------------------- on a card */
+
+.note-card {
+  padding: 7px 8px;
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+}
+.note-card .note-body {
+  /* Three lines, then it stops. A card is a summary; the whole thread is
+     one click away and a card that grows to fit a paragraph wrecks the
+     scannability that is the point of a board. */
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  font-size: 12px;
+}
+.note-card.empty { padding: 2px 0; background: transparent; }
+.note-card.writing { padding: 0; background: transparent; }
+
+/* ------------------------------------------------------------ phones */
+
+@media (max-width: 700px) {
+  /* The board is cards at this width, so there is no row to span. */
+  .row-note > td { padding-left: 0; }
+  .note-row { padding-left: 10px; }
+
+  /* No hover on a touch screen: the controls have to be permanent. */
+  .note-add, .note-history, .note.empty { opacity: 1; }
+
+  .note textarea { font-size: 16px; }  /* 16px stops iOS zooming on focus */
+}

@@ -186,6 +186,39 @@ boards.get('/boards/:boardId', async (c) => {
     .bind(board.id)
     .all<{ item_id: string; column_id: string; value: string }>()
 
+  // The most recent note on each item, so the board can show what is
+  // actually going on with a task without anybody opening it.
+  //
+  // "Reached out, waiting to hear back" and "sitting in deployment" are the
+  // things a team needs off a glance at the board; before this they were
+  // one click deep in a panel, which in practice meant nobody read them and
+  // so nobody wrote them.
+  //
+  // row_number() rather than max(created_at): two notes written in the same
+  // millisecond would both match a max() and the item would appear twice.
+  const notes = await c.env.DB
+    .prepare(
+      `select item_id, body, created_at, author from (
+         select u.item_id, u.body, u.created_at, a.full_name as author,
+                row_number() over (
+                  partition by u.item_id order by u.created_at desc, u.id desc
+                ) as rn
+           from item_update u
+           join item i on i.id = u.item_id
+           left join app_user a on a.id = u.author_id
+          where i.board_id = ? and i.archived = 0
+       ) where rn = 1`,
+    )
+    .bind(board.id)
+    .all<{ item_id: string; body: string; created_at: string; author: string | null }>()
+
+  const noteByItem = new Map(
+    notes.results.map((n) => [
+      n.item_id,
+      { body: n.body, author: n.author ?? undefined, at: n.created_at },
+    ]),
+  )
+
   const cellsByItem = new Map<string, Record<string, unknown>>()
   for (const cell of cells.results) {
     const bucket = cellsByItem.get(cell.item_id) ?? {}
@@ -218,6 +251,7 @@ boards.get('/boards/:boardId', async (c) => {
       title: i.title,
       sortOrder: i.sort_order,
       priority: i.priority,
+      lastNote: noteByItem.get(i.id),
       cells: cellsByItem.get(i.id) ?? {},
       createdAt: i.created_at,
       updatedAt: i.updated_at,

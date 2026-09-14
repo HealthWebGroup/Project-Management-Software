@@ -80,3 +80,6 @@
 
 /* Creating a board, and the empty states that offer it */
 @import './styles/24-new-board.css';
+
+/* Review notes: what is actually happening with a task */
+@import './styles/25-review-notes.css';
