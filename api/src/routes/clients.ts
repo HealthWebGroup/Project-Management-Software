@@ -3,6 +3,7 @@ import { isManager } from '../access'
 import { isoMinus, newId, now, recordActivity } from '../db'
 import { HttpError } from '../errors'
 import { LIMITS, email, httpUrl, isoDate, list, oneOf, optionalText, readJson, text } from '../validate'
+import { boardStatements } from './boards'
 import type { ClientRole, ClientStatus, Env, Vars } from '../types'
 
 export const clients = new Hono<{ Bindings: Env; Variables: Vars }>()
@@ -143,12 +144,65 @@ clients.post('/clients', async (c) => {
     )
     .run()
 
+  // ------------------------------------------------------------------
+  // Give the client somewhere to put work.
+  //
+  // A client row on its own is an address book entry. Until this was here,
+  // adding a client produced exactly that: the client appeared in the
+  // switcher and on the clients page, and then there was no board, so no
+  // kanban, no timeline and nowhere to type a task. The software looked
+  // broken at the first thing anybody does with it.
+  //
+  // So a new client gets a board, from the PROJECTS template, in the
+  // workspace that holds client work. It can be renamed, added to, or
+  // deleted - but it is never nothing.
+  // ------------------------------------------------------------------
+  let firstBoardId: string | undefined
+  try {
+    // The workspace that client work lives in. Preferring one whose board
+    // rows already carry a client beats matching on the name, which a team
+    // is free to change; the name is only the tie-breaker.
+    const workspace = await c.env.DB
+      .prepare(
+        `select w.id
+           from workspace w
+           left join board b on b.workspace_id = w.id and b.client_id is not null
+          where w.organisation_id = ?
+          group by w.id
+          order by count(b.id) desc, w.sort_order, w.name
+          limit 1`,
+      )
+      .bind(principal.organisationId)
+      .first<{ id: string }>()
+
+    if (workspace) {
+      firstBoardId = newId()
+      await c.env.DB.batch(
+        boardStatements(c.env.DB, {
+          boardId: firstBoardId,
+          workspaceId: workspace.id,
+          clientId: id,
+          name: `${name} — projects`,
+          description: `Work for ${name}. Rename or delete this board, or add more.`,
+          template: 'PROJECTS',
+          createdBy: principal.userId,
+        }),
+      )
+    }
+  } catch {
+    // The client is already saved and is the thing that was asked for. If
+    // the starter board fails, the client must not fail with it - they can
+    // add a board by hand, and a client that vanished because of a board
+    // would be far worse than a client with no board.
+    firstBoardId = undefined
+  }
+
   await recordActivity(c.env.DB, {
     entityType: 'CLIENT', entityId: id, actorId: principal.userId, action: 'CREATED', detail: name,
   })
 
   return c.json({
-    id, name, code, status, colour,
+    id, name, code, status, colour, firstBoardId,
     contactName: contactName || undefined,
     contactEmail: contactEmail || undefined,
     contactPhone: contactPhone || undefined,

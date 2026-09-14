@@ -1,0 +1,106 @@
+/* =====================================================================
+   Creating a board, and the empty states that lead to it
+
+   The template picker is radio buttons wearing cards. It stays a real
+   radio group underneath — arrow keys move between options, the label is
+   the hit area, and a screen reader announces it as the one choice it is.
+   A div-and-onClick version of this looks identical and is unusable
+   without a mouse.
+   ===================================================================== */
+
+.tpl-field { border: 0; padding: 0; margin: 0; }
+
+.tpl-field legend {
+  padding: 0 0 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.tpl-list { display: flex; flex-direction: column; gap: 6px; }
+
+.tpl {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  grid-template-areas:
+    'radio label'
+    'radio blurb'
+    'radio groups';
+  gap: 1px 10px;
+  padding: 9px 11px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+  cursor: pointer;
+  transition: border-color var(--fast) var(--ease), background-color var(--fast) var(--ease);
+}
+
+.tpl:hover { border-color: var(--accent); }
+
+.tpl.on {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+/* The radio itself stays visible rather than being hidden and faked. It is
+   the thing that tells you this is a single choice. */
+.tpl input { grid-area: radio; align-self: center; accent-color: var(--accent); margin: 0; }
+
+.tpl-label  { grid-area: label; font-size: 13.5px; font-weight: 650; color: var(--ink); }
+.tpl.on .tpl-label { color: var(--accent-ink); }
+.tpl-blurb  { grid-area: blurb; font-size: 12px; color: var(--muted); line-height: 1.4; }
+.tpl-groups {
+  grid-area: groups;
+  margin-top: 2px;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 10.5px;
+  letter-spacing: .02em;
+  color: var(--faint);
+}
+
+/* Keyboard focus lands on the input; the ring belongs on the whole card. */
+.tpl:focus-within { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* ------------------------------------------------- empty, with a way out */
+
+/* An empty state that only describes the emptiness is a dead end. This one
+   carries the action that fixes it. */
+.empty-do {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 18px 16px 20px;
+}
+
+.empty-do .muted { margin: 0; font-size: 13px; }
+
+/* ------------------------------------------- client card action buttons */
+
+.cc-actions { display: flex; flex-wrap: wrap; gap: 6px; }
+
+/* The heading row holds a title, a count and now a button. */
+.dash-head { display: flex; align-items: center; gap: 8px; }
+.dash-head .btn { margin-left: auto; }
+
+@media (max-width: 700px) {
+  .tpl { grid-template-columns: auto 1fr; }
+  .cc-actions .btn { flex: 1; }
+}
+
+/* ------------------------------------------------------ the way into a client */
+
+/* The client name is now the link to that client's page. It should read as
+   a heading first and reveal itself as a link on approach, rather than
+   sitting there permanently underlined and blue. */
+.cc-open {
+  color: inherit;
+  text-decoration: none;
+  border-radius: var(--radius-sm);
+}
+.cc-open:hover { color: var(--accent); text-decoration: underline; text-underline-offset: 2px; }
+.cc-open:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* A Link styled as a button needs the button's box, which `.btn` gives it,
+   plus the centring an <a> does not inherit. */
+a.btn { display: inline-flex; align-items: center; justify-content: center; text-decoration: none; }

@@ -230,6 +230,66 @@ boards.get('/boards/:boardId', async (c) => {
   })
 })
 
+/**
+ * Build every statement that makes a board: the board row, its groups and
+ * its columns, from a template.
+ *
+ * Extracted so that creating a client can set up its first board through
+ * exactly this path. Before, adding a client inserted one row and nothing
+ * else - so a brand new client had no board, and there was nowhere to put
+ * a task. That looked like the software was broken, and from the outside
+ * it was: the thing the client was created to hold could not be created.
+ *
+ * Returned as statements rather than executed here so the caller can put
+ * them in one batch with its own inserts - a half-made board is worse
+ * than none.
+ */
+export function boardStatements(
+  db: D1Database,
+  spec: {
+    boardId: string
+    workspaceId: string
+    clientId: string | null
+    name: string
+    description: string | null
+    template: BoardTemplate
+    createdBy: string
+  },
+): D1PreparedStatement[] {
+  const template = TEMPLATES[spec.template]
+  const statements: D1PreparedStatement[] = [
+    db.prepare(
+      `insert into board (id, workspace_id, client_id, name, description, template, sensitivity,
+                          sort_order, created_by, created_at)
+       values (?, ?, ?, ?, ?, ?, ?,
+               (select coalesce(max(sort_order) + 1, 0) from board where workspace_id = ?), ?, ?)`,
+    ).bind(
+      spec.boardId, spec.workspaceId, spec.clientId, spec.name, spec.description,
+      spec.template, defaultSensitivity(spec.template), spec.workspaceId, spec.createdBy, now(),
+    ),
+  ]
+
+  template.groups.forEach((title, index) => {
+    statements.push(
+      db.prepare(
+        `insert into board_group (id, board_id, title, colour, sort_order) values (?, ?, ?, ?, ?)`,
+      ).bind(newId(), spec.boardId, title, GROUP_COLOURS[index % GROUP_COLOURS.length], index),
+    )
+  })
+
+  template.columns.forEach((column, index) => {
+    statements.push(
+      db.prepare(
+        `insert into board_column (id, board_id, title, type, settings, sort_order, width)
+         values (?, ?, ?, ?, ?, ?, ?)`,
+      ).bind(newId(), spec.boardId, column.title, column.type,
+             JSON.stringify(column.settings), index, column.width),
+    )
+  })
+
+  return statements
+}
+
 boards.post('/boards', async (c) => {
   const principal = c.get('principal')
   if (!isManager(principal)) {
@@ -247,7 +307,6 @@ boards.post('/boards', async (c) => {
   const templateName = oneOf(
     body.template, Object.keys(TEMPLATES) as BoardTemplate[], 'Template',
   )
-  const template = TEMPLATES[templateName]
 
   // A client id from the body has to be one this organisation owns, or the
   // board is stamped with a client no query on this side will ever match.
@@ -268,33 +327,14 @@ boards.post('/boards', async (c) => {
   }
 
   const boardId = newId()
-  const statements: D1PreparedStatement[] = [
-    c.env.DB.prepare(
-      `insert into board (id, workspace_id, client_id, name, description, template, sensitivity,
-                          sort_order, created_by, created_at)
-       values (?, ?, ?, ?, ?, ?, ?,
-               (select coalesce(max(sort_order) + 1, 0) from board where workspace_id = ?), ?, ?)`,
-    ).bind(
-      boardId, workspace.id, clientId, name, description || null,
-      templateName, defaultSensitivity(templateName), workspace.id, principal.userId, now(),
-    ),
-  ]
-
-  template.groups.forEach((title, index) => {
-    statements.push(
-      c.env.DB.prepare(
-        `insert into board_group (id, board_id, title, colour, sort_order) values (?, ?, ?, ?, ?)`,
-      ).bind(newId(), boardId, title, GROUP_COLOURS[index % GROUP_COLOURS.length], index),
-    )
-  })
-
-  template.columns.forEach((column, index) => {
-    statements.push(
-      c.env.DB.prepare(
-        `insert into board_column (id, board_id, title, type, settings, sort_order, width)
-         values (?, ?, ?, ?, ?, ?, ?)`,
-      ).bind(newId(), boardId, column.title, column.type, JSON.stringify(column.settings), index, column.width),
-    )
+  const statements = boardStatements(c.env.DB, {
+    boardId,
+    workspaceId: workspace.id,
+    clientId,
+    name,
+    description: description || null,
+    template: templateName,
+    createdBy: principal.userId,
   })
 
   // One batch: the board and its whole structure land together or not at all.

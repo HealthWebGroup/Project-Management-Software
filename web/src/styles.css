@@ -77,3 +77,6 @@
 
 /* Settings: display, people and access, boards and rules */
 @import './styles/23-settings.css';
+
+/* Creating a board, and the empty states that offer it */
+@import './styles/24-new-board.css';

@@ -5,6 +5,7 @@
  * at all - anything that is not plain http(s) is dropped rather than trusted.
  */
 import { useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { api, ApiError } from '../lib/api'
 import type { Client, ClientRole, ClientStatus, User } from '../lib/types'
 import { useAuth } from '../state/auth'
@@ -21,6 +22,7 @@ export default function ClientsPage() {
   const { user } = useAuth()
   const [adding, setAdding] = useState(false)
   const [editingTeam, setEditingTeam] = useState<Client | null>(null)
+  const [editing, setEditing] = useState<Client | null>(null)
   const [error, setError] = useState<string | null>(null)
 
   const canManage = user?.role === 'ADMIN' || user?.role === 'MANAGER'
@@ -47,7 +49,16 @@ export default function ClientsPage() {
             <div className="cc-head">
               <span className={`cc-code ${colourClass(client.colour)}`}>{client.code}</span>
               <div className="cc-title">
-                <h2>{client.name}</h2>
+                {/* The name is the way in. Until this was a link there was
+                    no route from the clients page to a client's own page at
+                    all - you could see the card and had nowhere to click,
+                    which is what "I can't add anything to a new client"
+                    turned out to mean. */}
+                <h2>
+                  <Link to={`/clients/${client.id}`} className="cc-open">
+                    {client.name}
+                  </Link>
+                </h2>
                 <span className={`cc-status ${client.status.toLowerCase()}`}>
                   {client.status.toLowerCase()}
                 </span>
@@ -108,9 +119,17 @@ export default function ClientsPage() {
                 ))}
               </div>
               {canManage && (
-                <button className="btn ghost small" onClick={() => setEditingTeam(client)}>
-                  Change team
-                </button>
+                <div className="cc-actions">
+                  <Link className="btn ghost small" to={`/clients/${client.id}`}>
+                    Open
+                  </Link>
+                  <button className="btn ghost small" onClick={() => setEditing(client)}>
+                    Edit details
+                  </button>
+                  <button className="btn ghost small" onClick={() => setEditingTeam(client)}>
+                    Change team
+                  </button>
+                </div>
               )}
             </div>
 
@@ -144,6 +163,18 @@ export default function ClientsPage() {
         />
       )}
 
+      {editing && (
+        <AddClientDialog
+          existing={editing}
+          onClose={() => setEditing(null)}
+          onSaved={async () => {
+            setEditing(null)
+            await refresh()
+          }}
+          onError={setError}
+        />
+      )}
+
       {editingTeam && (
         <TeamDialog
           client={editingTeam}
@@ -161,19 +192,35 @@ export default function ClientsPage() {
 
 // ---------------------------------------------------------------- add
 
+/**
+ * Add a client, or edit one. Deliberately the same component in two modes:
+ * as two components they drift, and the first field added to one of them
+ * is missing from the other until somebody notices.
+ */
 function AddClientDialog({
+  existing,
   onClose,
   onSaved,
   onError,
 }: {
+  existing?: Client
   onClose: () => void
   onSaved: () => void
   onError: (message: string) => void
 }) {
+  const editing = Boolean(existing)
   const [form, setForm] = useState({
-    name: '', code: '', status: 'ACTIVE' as ClientStatus, colour: 'blue',
-    contactName: '', contactEmail: '', contactPhone: '', website: '', address: '', notes: '',
-    startedOn: '',
+    name: existing?.name ?? '',
+    code: existing?.code ?? '',
+    status: (existing?.status ?? 'ACTIVE') as ClientStatus,
+    colour: existing?.colour ?? 'blue',
+    contactName: existing?.contactName ?? '',
+    contactEmail: existing?.contactEmail ?? '',
+    contactPhone: existing?.contactPhone ?? '',
+    website: existing?.website ?? '',
+    address: existing?.address ?? '',
+    notes: existing?.notes ?? '',
+    startedOn: existing?.startedOn ?? '',
   })
   const [busy, setBusy] = useState(false)
 
@@ -184,22 +231,28 @@ function AddClientDialog({
     event.preventDefault()
     setBusy(true)
     try {
-      await api.post('/api/clients', {
+      const payload = {
         ...form,
         code: form.code.trim().toUpperCase(),
         startedOn: form.startedOn || undefined,
         contactEmail: form.contactEmail || undefined,
-      })
+      }
+      if (editing && existing) await api.patch(`/api/clients/${existing.id}`, payload)
+      else await api.post('/api/clients', payload)
       onSaved()
     } catch (e) {
-      onError(e instanceof ApiError ? e.message : 'Could not add that client.')
+      onError(
+        e instanceof ApiError
+          ? e.message
+          : editing ? 'Could not save those changes.' : 'Could not add that client.',
+      )
     } finally {
       setBusy(false)
     }
   }
 
   return (
-    <Dialog title="Add a client" onClose={onClose}>
+    <Dialog title={editing ? `Edit ${existing?.name}` : 'Add a client'} onClose={onClose}>
       <form className="dialog-form" onSubmit={submit}>
         <div className="row-2">
           <label className="field">
@@ -288,7 +341,7 @@ function AddClientDialog({
             Cancel
           </button>
           <button type="submit" className="btn primary" disabled={busy}>
-            {busy ? 'Saving…' : 'Add client'}
+            {busy ? 'Saving…' : editing ? 'Save changes' : 'Add client'}
           </button>
         </div>
       </form>

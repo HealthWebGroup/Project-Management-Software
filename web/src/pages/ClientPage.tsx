@@ -14,8 +14,9 @@
  */
 
 import { useEffect, useMemo, useState } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { Link, useNavigate, useParams } from 'react-router-dom'
 import { api, ApiError } from '../lib/api'
+import NewBoardDialog from '../components/NewBoardDialog'
 import type { Dashboard, Workspace } from '../lib/types'
 import { useClients } from '../state/clients'
 import { colourClass } from '../components/Pill'
@@ -43,6 +44,8 @@ export default function ClientPage() {
   const { clients, loading } = useClients()
   const [data, setData] = useState<Dashboard | null>(null)
   const [boards, setBoards] = useState<Workspace[] | null>(null)
+  const [addingBoard, setAddingBoard] = useState(false)
+  const navigate = useNavigate()
   const [error, setError] = useState<string | null>(null)
 
   const client = useMemo(
@@ -149,9 +152,21 @@ export default function ClientPage() {
           <div className="dash-head">
             <h2>Projects</h2>
             <span className="dash-sub">{projects.length}</span>
+            <button className="btn ghost small" onClick={() => setAddingBoard(true)}>
+              + New board
+            </button>
           </div>
           {projects.length === 0 ? (
-            <p className="muted pad">No projects yet.</p>
+            // This used to say "No projects yet." and stop, which was a dead
+            // end: the one thing you wanted was to start work for this client
+            // and the page offered no way to. New clients now come with a
+            // board, so this is only reached if every board was deleted.
+            <div className="empty-do">
+              <p className="muted">No boards for this client yet.</p>
+              <button className="btn primary" onClick={() => setAddingBoard(true)}>
+                Create the first board
+              </button>
+            </div>
           ) : (
             <ul className="proj-cards">
               {projects.map((board) => (
@@ -240,7 +255,23 @@ export default function ClientPage() {
             <h2>Notes</h2>
           </div>
           <p className="client-notes">{client.notes}</p>
-        </section>
+          {addingBoard && boards && (
+        <NewBoardDialog
+          workspaces={boards}
+          clientId={clientId}
+          clientName={client.name}
+          onClose={() => setAddingBoard(false)}
+          onCreated={(board) => {
+            setAddingBoard(false)
+            // Straight into the new board. Creating one and being left on
+            // the page you started from makes you hunt for the thing you
+            // just made.
+            navigate(`/boards/${board.id}`)
+          }}
+        />
+      )}
+
+    </section>
       )}
     </div>
   )
