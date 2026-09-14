@@ -9,6 +9,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { BoardDetail, CellValue, Client, Item, Priority } from '../lib/types'
 import PriorityPill from './PriorityPill'
+import Popover from './Popover'
 import { Avatar, colourClass } from './Pill'
 import { daysUntil } from './CellEditor'
 
@@ -213,7 +214,6 @@ export default function KanbanView({
                       (item.cells[peopleColumn.id]?.userIds ?? []).includes(m.id))
                   : []
                 const due = dateColumn ? item.cells[dateColumn.id]?.date : undefined
-                const days = daysUntil(due)
                 const progress = progressColumn ? item.cells[progressColumn.id]?.number : undefined
 
                 return (
@@ -299,17 +299,19 @@ export default function KanbanView({
                           )}
                         </span>
                       )}
-                      {due && (
-                        <span
-                          className={`card-due ${
-                            days !== null && days < 0 ? 'overdue' : days !== null && days <= 7 ? 'soon' : ''
-                          }`}
-                        >
-                          {new Date(due + 'T00:00:00').toLocaleDateString('en-IE', {
-                            day: 'numeric',
-                            month: 'short',
-                          })}
-                        </span>
+                      {/* The date, and settable from here. It used to appear
+                          only when a date already existed, so a board where
+                          nobody had set one showed no dates and offered no
+                          way to add one - the single most useful thing on a
+                          kanban card was invisible and unreachable. */}
+                      {dateColumn && (
+                        <DueDate
+                          value={due}
+                          readOnly={readOnly}
+                          onChange={(date) =>
+                            onSetCell(item.id, dateColumn.id, date ? { date } : {})
+                          }
+                        />
                       )}
                     </footer>
                   </article>
@@ -417,39 +419,120 @@ function AssignPicker({
   onChange: (userIds: string[]) => void
 }) {
   const [open, setOpen] = useState(false)
+  const button = useRef<HTMLButtonElement>(null)
   const on = members.filter((m) => chosen.includes(m.id))
 
   return (
     <div className="assign-wrap">
-      <button className="assign-btn" onClick={() => setOpen((o) => !o)} aria-label="Assign people">
+      <button
+        ref={button}
+        type="button"
+        className={open ? 'assign-btn open' : 'assign-btn'}
+        onClick={() => setOpen((o) => !o)}
+        aria-haspopup="true"
+        aria-expanded={open}
+        aria-label="Assign people"
+      >
         {on.length === 0
           ? <span className="card-unassigned">+ Assign</span>
           : on.map((o) => <Avatar key={o.id} name={o.fullName} />)}
       </button>
+
       {open && (
-        <>
-          <div className="card-menu-scrim" onClick={() => setOpen(false)} />
-          <div className="assign-list">
-            <span className="cm-title">Who is on this</span>
-            {members.map((m) => {
-              const isOn = chosen.includes(m.id)
-              return (
-                <button
-                  key={m.id}
-                  className={isOn ? 'on' : ''}
-                  onClick={() =>
-                    onChange(isOn ? chosen.filter((id) => id !== m.id) : [...chosen, m.id])
-                  }
-                >
-                  <Avatar name={m.fullName} />
-                  {m.fullName}
-                  {isOn && <span className="assign-tick">✓</span>}
-                </button>
-              )
-            })}
-            {members.length === 0 && <span className="cm-empty">Nobody on this board yet</span>}
-          </div>
-        </>
+        <Popover anchor={button.current} onClose={() => setOpen(false)} className="assign-list">
+          <span className="cm-title">Who is on this</span>
+          {members.map((m) => {
+            const isOn = chosen.includes(m.id)
+            return (
+              <button
+                key={m.id}
+                type="button"
+                className={isOn ? 'on' : ''}
+                onClick={() =>
+                  onChange(isOn ? chosen.filter((id) => id !== m.id) : [...chosen, m.id])
+                }
+              >
+                <Avatar name={m.fullName} />
+                {m.fullName}
+                {isOn && <span className="assign-tick">✓</span>}
+              </button>
+            )
+          })}
+          {members.length === 0 && <span className="cm-empty">Nobody on this board yet</span>}
+        </Popover>
+      )}
+    </div>
+  )
+}
+
+/**
+ * The due date, set from the card.
+ *
+ * A kanban card with no date on it cannot tell you what is late, which is
+ * most of what a board is for. This reads and writes the board's DATE
+ * column - the same cell the table edits - so a date set here is on the
+ * table and the timeline immediately.
+ */
+function DueDate({
+  value, readOnly, onChange,
+}: {
+  value?: string
+  readOnly: boolean
+  onChange: (date: string | undefined) => void
+}) {
+  const [open, setOpen] = useState(false)
+  const button = useRef<HTMLButtonElement>(null)
+  const days = daysUntil(value)
+
+  const shown = value
+    ? new Date(value + 'T00:00:00').toLocaleDateString('en-IE', { day: 'numeric', month: 'short' })
+    : null
+
+  // "3 days late" and "due tomorrow" are what people actually need; the date
+  // itself is the detail. Both are shown, the urgency first.
+  const when =
+    days === null ? null
+    : days < 0 ? `${Math.abs(days)}d late`
+    : days === 0 ? 'today'
+    : days === 1 ? 'tomorrow'
+    : days <= 7 ? `in ${days}d`
+    : null
+
+  const tone = days === null ? '' : days < 0 ? ' overdue' : days <= 7 ? ' soon' : ''
+
+  if (readOnly) {
+    return value ? <span className={`card-due${tone}`}>{when ?? shown}</span> : null
+  }
+
+  return (
+    <div className="due-wrap">
+      <button
+        ref={button}
+        type="button"
+        className={value ? `card-due${tone}${open ? ' open' : ''}` : `card-due empty${open ? ' open' : ''}`}
+        onClick={() => setOpen((o) => !o)}
+        aria-label={value ? `Due ${shown}` : 'Set a due date'}
+      >
+        {value ? (when ? `${shown} · ${when}` : shown) : '+ Date'}
+      </button>
+
+      {open && (
+        <Popover anchor={button.current} onClose={() => setOpen(false)} className="due-panel">
+          <label className="due-field">
+            <span>Due date</span>
+            <input
+              type="date"
+              value={value ?? ''}
+              autoFocus
+              onChange={(e) => { onChange(e.target.value || undefined); setOpen(false) }}
+            />
+          </label>
+          {value && (
+            <button type="button" className="due-clear" onClick={() => { onChange(undefined); setOpen(false) }}>
+              Clear the date
+            </button>
+          )}
+        </Popover>
       )}
     </div>
   )
@@ -526,43 +609,50 @@ function CardMenu({
   onDelete: () => void
 }) {
   const [open, setOpen] = useState(false)
+  const button = useRef<HTMLButtonElement>(null)
+
   return (
     <div className="card-menu">
-      <button className="card-menu-btn" onClick={() => setOpen((o) => !o)} aria-label="Move card">
+      <button
+        ref={button}
+        type="button"
+        className={open ? 'card-menu-btn open' : 'card-menu-btn'}
+        onClick={() => setOpen((o) => !o)}
+        aria-haspopup="true"
+        aria-expanded={open}
+        aria-label="Move or delete this card"
+      >
         ⋯
       </button>
+
       {open && (
-        <>
-          <div className="card-menu-scrim" onClick={() => setOpen(false)} />
-          <div className="card-menu-list">
-            <span className="cm-title">Move to</span>
-            {lanes
-              .filter((lane) => lane.key !== current)
-              .map((lane) => (
-                <button
-                  key={lane.key}
-                  onClick={() => {
-                    onMove(lane.key)
-                    setOpen(false)
-                  }}
-                >
-                  {lane.title}
-                </button>
-              ))}
-            <span className="cm-sep" />
-            <button
-              className="cm-danger"
-              onClick={() => {
-                // No confirm dialog: a browser confirm() blocks everything,
-                // and the board already keeps an activity log of deletions.
-                onDelete()
-                setOpen(false)
-              }}
-            >
-              Delete task
-            </button>
-          </div>
-        </>
+        <Popover anchor={button.current} onClose={() => setOpen(false)} className="card-menu-list">
+          <span className="cm-title">Move to</span>
+          {lanes
+            .filter((lane) => lane.key !== current)
+            .map((lane) => (
+              <button
+                key={lane.key}
+                type="button"
+                onClick={() => { onMove(lane.key); setOpen(false) }}
+              >
+                {lane.title}
+              </button>
+            ))}
+          <span className="cm-sep" />
+          <button
+            type="button"
+            className="cm-danger"
+            onClick={() => {
+              // No confirm dialog: a browser confirm() blocks everything,
+              // and the board already keeps an activity log of deletions.
+              onDelete()
+              setOpen(false)
+            }}
+          >
+            Delete task
+          </button>
+        </Popover>
       )}
     </div>
   )

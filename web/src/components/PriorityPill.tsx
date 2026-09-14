@@ -6,13 +6,18 @@
  * it, and the same task then shows a different priority depending on which
  * tab you are looking at.
  *
+ * The menu goes through Popover, which renders it on <body>. Inside a
+ * kanban lane it was being clipped away to nothing — see the note in
+ * Popover.tsx.
+ *
  * It writes nothing itself. The page owns the item list and does the
  * saving, which is what keeps table, kanban and timeline showing the same
  * value at the same moment.
  */
-import { useEffect, useRef, useState } from 'react'
+import { useRef, useState } from 'react'
 import type { Priority } from '../lib/types'
 import { PRIORITIES, PRIORITY_LABEL } from '../lib/types'
+import Popover from './Popover'
 
 interface Props {
   value: Priority
@@ -25,16 +30,7 @@ interface Props {
 
 export default function PriorityPill({ value, readOnly, onChange, quiet = false }: Props) {
   const [open, setOpen] = useState(false)
-  const wrap = useRef<HTMLDivElement>(null)
-
-  // Close on Escape as well as on the scrim. A menu that only closes by
-  // clicking away is a trap for anyone working from the keyboard.
-  useEffect(() => {
-    if (!open) return
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setOpen(false) }
-    document.addEventListener('keydown', onKey)
-    return () => document.removeEventListener('keydown', onKey)
-  }, [open])
+  const button = useRef<HTMLButtonElement>(null)
 
   if (readOnly) {
     if (value === 'NONE') return quiet ? null : <span className="prio prio-none">—</span>
@@ -45,9 +41,11 @@ export default function PriorityPill({ value, readOnly, onChange, quiet = false 
   const label = unset ? (quiet ? '+ Priority' : 'Set') : PRIORITY_LABEL[value]
 
   return (
-    <div className="prio-wrap" ref={wrap}>
+    <div className="prio-wrap">
       <button
-        className={`prio prio-${value.toLowerCase()}${unset && quiet ? ' empty' : ''}`}
+        ref={button}
+        type="button"
+        className={`prio prio-${value.toLowerCase()}${unset && quiet ? ' empty' : ''}${open ? ' open' : ''}`}
         onClick={() => setOpen((o) => !o)}
         aria-haspopup="listbox"
         aria-expanded={open}
@@ -55,13 +53,14 @@ export default function PriorityPill({ value, readOnly, onChange, quiet = false 
       >
         {label}
       </button>
+
       {open && (
-        <>
-          <div className="card-menu-scrim" onClick={() => setOpen(false)} />
-          <div className="prio-list" role="listbox">
+        <Popover anchor={button.current} onClose={() => setOpen(false)} className="prio-list">
+          <div role="listbox" aria-label="Priority">
             {PRIORITIES.map((p) => (
               <button
                 key={p}
+                type="button"
                 role="option"
                 aria-selected={p === value}
                 className={`prio-option prio-${p.toLowerCase()}${p === value ? ' on' : ''}`}
@@ -71,7 +70,7 @@ export default function PriorityPill({ value, readOnly, onChange, quiet = false 
               </button>
             ))}
           </div>
-        </>
+        </Popover>
       )}
     </div>
   )

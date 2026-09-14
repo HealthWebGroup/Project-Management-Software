@@ -70,25 +70,7 @@
 
 .prio-wrap { position: relative; display: flex; }
 
-.prio-list {
-  position: absolute;
-  /* Above the scrim, which sits at 55. At 40 the scrim covered the menu:
-     the options were visible but every click landed on the scrim and shut
-     the menu instead of choosing anything - the control looked fine and
-     did nothing. A browser test caught it; the eye would not have. */
-  z-index: 56;
-  top: calc(100% + 5px);
-  left: 0;
-  min-width: 148px;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  padding: 5px;
-  background: var(--surface);
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
-  box-shadow: var(--e2);
-}
+/* (was .prio-list — the panel is portalled now; see .popover-panel below) */
 
 .prio-option {
   display: flex;
@@ -173,23 +155,7 @@
 .assign-btn:hover { border-color: var(--line); background: var(--surface-2); }
 .assign-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
 
-.assign-list {
-  position: absolute;
-  z-index: 56;   /* above the scrim at 55 - see the note on .prio-list */
-  bottom: calc(100% + 5px);
-  left: 0;
-  min-width: 190px;
-  max-height: 244px;
-  overflow-y: auto;
-  display: flex;
-  flex-direction: column;
-  gap: 1px;
-  padding: 5px;
-  background: var(--surface);
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
-  box-shadow: var(--e2);
-}
+/* (was .assign-list — the panel is portalled now; see .popover-panel below) */
 
 .assign-list button {
   display: flex;
@@ -289,4 +255,120 @@
 
   /* A lane is the full width of the screen, so the add field is too. */
   .lane-compose input { font-size: 16px; }  /* 16px stops iOS zooming on focus */
+}
+
+/* =====================================================================
+   Menus that live on <body>
+
+   The priority, assign, date and card menus are rendered through a portal
+   now (components/Popover.tsx), because the kanban lanes clip on both
+   axes and were cutting them off entirely — clicking "+ Priority" looked
+   like nothing happened.
+
+   The consequence for CSS: these panels are no longer descendants of the
+   card, so `.card .prio-list` and friends would never match. They are
+   positioned by the component and styled from here as top-level things.
+   ===================================================================== */
+
+.popover-panel {
+  /* position/top/left come from the component; everything visual is here */
+  z-index: 200;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 5px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--e3);
+  animation: pop-in 120ms var(--out) both;
+}
+
+@keyframes pop-in {
+  from { opacity: 0; transform: translateY(-3px) scale(.98); }
+  to   { opacity: 1; transform: none; }
+}
+
+.popover-panel.prio-list   { min-width: 156px; }
+.popover-panel.assign-list { min-width: 196px; max-height: 260px; overflow-y: auto; }
+.popover-panel.card-menu-list { min-width: 178px; }
+.popover-panel.due-panel   { min-width: 210px; gap: 8px; padding: 10px; }
+
+/* The button stays visibly "pressed" while its menu is open — otherwise,
+   with the menu floating free of the card, nothing connects the two. */
+.prio.open, .assign-btn.open, .card-menu-btn.open, .card-due.open {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--accent-ink);
+}
+.prio.empty.open { opacity: 1; }
+
+/* ------------------------------------------------------------ due date */
+
+.due-wrap { display: flex; margin-left: auto; }
+
+.card-due {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border: 1px solid transparent;
+  border-radius: 100px;
+  background: var(--surface-2);
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+/* Late and nearly-late are the two states worth a colour. Everything else
+   is a date, and a date is not an alarm. */
+.card-due.soon    { background: var(--c-amber-bg); color: var(--c-amber); }
+.card-due.overdue { background: var(--c-red-bg);   color: var(--c-red);
+                    border-color: color-mix(in srgb, var(--c-red) 32%, transparent); }
+
+.card-due.empty {
+  background: transparent;
+  color: var(--faint);
+  font-weight: 500;
+  opacity: 0;
+  transition: opacity var(--fast) var(--ease), color var(--fast) var(--ease);
+}
+.card:hover .card-due.empty,
+.card:focus-within .card-due.empty { opacity: 1; }
+.card-due.empty:hover { color: var(--accent); background: var(--accent-soft); }
+.card-due:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; opacity: 1; }
+
+.due-field { display: flex; flex-direction: column; gap: 4px; }
+.due-field span { font-size: 11px; font-weight: 650; color: var(--muted); }
+.due-field input {
+  padding: 6px 8px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+  font-size: 13px;
+}
+.due-field input:focus { outline: 2px solid var(--ring); outline-offset: 1px; border-color: var(--accent); }
+
+.due-clear {
+  padding: 5px 8px;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--c-red);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+}
+.due-clear:hover { background: var(--c-red-bg); }
+
+/* Phones: hover reveals nothing, so the two quiet controls are always on. */
+@media (max-width: 700px) {
+  .card-due.empty { opacity: 1; }
 }
