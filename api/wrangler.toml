@@ -13,16 +13,12 @@ account_id = "1f547b22b96f44190204427c7b1a21a6"
 # task.healthwebgroup.com is working if you would rather have one door.
 workers_dev = true
 
-# The custom domain is OFF until healthwebgroup.com is an active zone on this
-# Cloudflare account. Leaving it on made the very first deploy fail on a zone
-# error, which is a miserable way to meet a new tool — and it is not needed:
-# Cloudflare Access can protect the workers.dev hostname directly, so the app
-# can be live, signed-in and in real use before DNS is touched at all.
+# The custom domain, live. healthwebgroup.com is an active zone on this
+# account and the Access application protects this hostname.
 #
-# When the nameservers have moved and the zone is Active, uncomment these
-# three lines, re-point the Access application at task.healthwebgroup.com, and
-# deploy again. Nothing else changes.
-#
+# (This block used to be commented out, with a long note above it explaining
+# that it was off. The note stayed after the block was switched on, which
+# made the file say the opposite of what it did — so the note is gone.)
 [[routes]]
 pattern = "task.healthwebgroup.com"
 custom_domain = true
@@ -47,8 +43,21 @@ crons = ["0 7 * * *"]
 [[d1_databases]]
 binding = "DB"
 database_name = "workos"
-# Replace with the id printed by:  wrangler d1 create workos
-database_id = "REPLACE_WITH_YOUR_D1_DATABASE_ID"
+
+# The real database. This line shipped as a REPLACE-ME placeholder for far
+# too long, and every automatic deploy failed on it at the migration step
+# with "Invalid uuid [code: 7400]" — a confusing error, because nothing was
+# wrong with the code that had just built successfully seconds earlier.
+#
+# The placeholder string itself is deliberately not written out here: a
+# check that greps this file for it should find nothing.
+#
+# It is not a secret: a database id is useless without credentials for this
+# account, and it has to be in version control or a deploy from anywhere but
+# one laptop cannot work. If this database is ever recreated, the new id
+# goes here — `npx wrangler d1 list` prints it.
+database_id = "dc15841c-f54e-46fa-ad80-9c28f2333775"
+
 migrations_dir = "migrations"
 
 [vars]
