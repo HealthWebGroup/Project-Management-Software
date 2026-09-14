@@ -18,7 +18,18 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import type { Client, Workspace } from '../lib/types'
+import { api } from '../lib/api'
+import type { Client, Priority, Workspace } from '../lib/types'
+
+interface FoundTask {
+  id: string
+  title: string
+  priority: Priority
+  boardId: string
+  boardName: string
+  clientName?: string
+  clientColour?: string
+}
 
 interface Command {
   id: string
@@ -108,6 +119,41 @@ export default function CommandPalette({
     if (open) window.setTimeout(() => input.current?.focus(), 0)
   }, [open])
 
+  /**
+   * Tasks, from the server, as you type.
+   *
+   * Boards, clients and pages are already in memory and match instantly.
+   * Tasks are not — there can be thousands and they change constantly, so
+   * they are asked for. Which means this is the one part of the palette
+   * that can be wrong for a moment, and the two guards below are what keep
+   * that from showing:
+   *
+   *   - a short debounce, so typing "renewal" is one request and not seven
+   *   - a sequence number, so a slow response for "ren" cannot land after
+   *     a fast one for "renewal" and replace the right answer with a
+   *     stale one. Without it the list flickers back to older results,
+   *     which looks like the search is broken.
+   */
+  const [tasks, setTasks] = useState<FoundTask[]>([])
+  const [searching, setSearching] = useState(false)
+  const seq = useRef(0)
+
+  useEffect(() => {
+    const q = query.trim()
+    if (!open || q.length < 2) { setTasks([]); setSearching(false); return }
+
+    const mine = ++seq.current
+    setSearching(true)
+    const timer = window.setTimeout(() => {
+      api
+        .get<{ items: FoundTask[] }>(`/api/search?q=${encodeURIComponent(q)}`)
+        .then((r) => { if (mine === seq.current) { setTasks(r.items); setSearching(false) } })
+        .catch(() => { if (mine === seq.current) { setTasks([]); setSearching(false) } })
+    }, 180)
+
+    return () => window.clearTimeout(timer)
+  }, [query, open])
+
   const commands = useMemo<Command[]>(() => {
     const out: Command[] = []
 
@@ -172,8 +218,28 @@ export default function CommandPalette({
       .filter((row): row is { command: Command; rank: number } => row !== null)
 
     scored.sort((a, b) => a.rank - b.rank)
-    return scored.slice(0, 12).map((row) => row.command)
-  }, [commands, query])
+    const local = scored.slice(0, 8).map((row) => row.command)
+
+    /**
+     * Tasks come after boards, clients and pages, never mixed in.
+     *
+     * They are ranked by the server (most recently touched first) and the
+     * rest by subsequence score, so the two cannot be compared — merging
+     * them would produce an order with no meaning. Keeping them in their
+     * own group also means typing three letters does not push the board
+     * you were aiming for below eight task titles.
+     */
+    const found: Command[] = tasks.map((t) => ({
+      id: `task:${t.id}`,
+      label: t.title,
+      hint: t.clientName ? `${t.clientName} · ${t.boardName}` : t.boardName,
+      group: 'Tasks',
+      mark: t.priority !== 'NONE' ? t.priority[0] : undefined,
+      run: () => navigate(`/boards/${t.boardId}`),
+    }))
+
+    return [...local, ...found.slice(0, 8)]
+  }, [commands, query, tasks, navigate])
 
   // The cursor must never point past the end of a shrinking list.
   useEffect(() => setCursor(0), [query])
@@ -234,7 +300,12 @@ export default function CommandPalette({
 
         <div className="cmdk-list" id="cmdk-results" ref={list} role="listbox">
           {matches.length === 0 && (
-            <p className="cmdk-empty">Nothing matches “{query}”.</p>
+            <p className="cmdk-empty">
+              {/* "Nothing matches" while a request is still in flight is a
+                  lie that lasts a few hundred milliseconds, and it is the
+                  exact moment someone decides the search is broken. */}
+              {searching ? 'Searching…' : `Nothing matches \u201C${query}\u201D.`}
+            </p>
           )}
           {matches.map((command, index) => {
             const heading = command.group !== lastGroup ? command.group : null

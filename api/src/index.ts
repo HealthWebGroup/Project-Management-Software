@@ -14,6 +14,7 @@ import { items } from './routes/items'
 import { notifications } from './routes/notifications'
 import { people } from './routes/people'
 import { team } from './routes/team'
+import { search } from './routes/search'
 import { todos } from './routes/todos'
 import type { Env, Vars } from './types'
 
@@ -95,6 +96,7 @@ app.route('/api', items)
 app.route('/api', clients)
 app.route('/api', people)
 app.route('/api', team)
+app.route('/api', search)
 app.route('/api', todos)
 app.route('/api', automations)
 app.route('/api', notifications)
