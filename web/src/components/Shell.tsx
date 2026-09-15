@@ -6,7 +6,7 @@
  * filtered set - see the note on the fetch below.
  */
 import { useEffect, useState } from 'react'
-import { Outlet, useLocation } from 'react-router-dom'
+import { NavLink, Outlet, useLocation } from 'react-router-dom'
 import { api } from '../lib/api'
 import type { Workspace } from '../lib/types'
 import { useAuth } from '../state/auth'
@@ -76,6 +76,31 @@ function ShellInner() {
           <span className="brand-name">Work OS</span>
         </div>
 
+        {/*
+          The pages, in the drawer.
+
+          On a desktop these live in the top bar. On a phone that strip
+          wrapped over three lines and still lost its last entry, so it is
+          hidden there — which quietly made Settings, Team & time and the
+          rest unreachable on a phone, because nothing else linked to them.
+          They belong here: the drawer is the one place a phone user can
+          always get back to. Hidden above 700px, where the top bar has
+          room for them again.
+        */}
+        <nav className="drawer-pages" aria-label="Pages">
+          {PAGES.map((page) => (
+            <NavLink
+              key={page.to}
+              to={page.to}
+              end={page.end}
+              className={({ isActive }) => (isActive ? 'dp on' : 'dp')}
+              onClick={() => setMenuOpen(false)}
+            >
+              {page.label}
+            </NavLink>
+          ))}
+        </nav>
+
         <nav className="sidebar-nav">
           <ClientNav workspaces={workspaces} clients={clients} error={error} />
         </nav>
@@ -108,6 +133,18 @@ function ShellInner() {
  * The client selection and the running timer are only meaningful once someone
  * is signed in, so their providers sit inside the authenticated shell.
  */
+/**
+ * The pages the drawer offers on a phone. Deliberately the same four the
+ * top bar shows on a desktop — a drawer that can reach somewhere the top
+ * bar cannot becomes a second, divergent navigation.
+ */
+const PAGES = [
+  { to: '/', label: 'Dashboard', end: true },
+  { to: '/clients', label: 'Clients', end: false },
+  { to: '/team', label: 'Team & time', end: false },
+  { to: '/settings', label: 'Settings', end: false },
+]
+
 export default function Shell() {
   return (
     <ClientProvider>

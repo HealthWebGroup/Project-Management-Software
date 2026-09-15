@@ -140,3 +140,10 @@
   border-radius: var(--radius-lg);
   box-shadow: var(--e2), var(--lip);
 }
+
+
+/* The drawer's page links exist for phones only; above 700px the top bar
+   carries them and two copies on one screen is one too many. */
+@media (min-width: 701px) {
+  .drawer-pages { display: none; }
+}

@@ -17,7 +17,32 @@ import { Avatar, colourClass } from './Pill'
 
 const DAY = 86400000
 const ROW = 34
-const SIDE = 260
+
+/**
+ * How much of the width the item names take.
+ *
+ * On a phone 260px of a 390px screen left about sixty pixels of actual
+ * calendar — every bar clipped, the plan unreadable, and the one thing the
+ * timeline exists to show invisible. Names get a third of the screen there
+ * and the plan gets the rest; a truncated name you can scroll back to beats
+ * a plan you cannot see at all.
+ */
+const SIDE_WIDE = 260
+const SIDE_PHONE = 116
+
+function useSideWidth(): number {
+  const query = '(max-width: 700px)'
+  const [phone, setPhone] = useState(
+    () => typeof window !== 'undefined' && window.matchMedia(query).matches,
+  )
+  useEffect(() => {
+    const mq = window.matchMedia(query)
+    const on = () => setPhone(mq.matches)
+    mq.addEventListener('change', on)
+    return () => mq.removeEventListener('change', on)
+  }, [])
+  return phone ? SIDE_PHONE : SIDE_WIDE
+}
 
 type Zoom = 'day' | 'week' | 'month'
 const PX_PER_DAY: Record<Zoom, number> = { day: 30, week: 11, month: 4.2 }
@@ -69,6 +94,7 @@ const startOfToday = () => {
 }
 
 export default function TimelineView({ board, items, readOnly, onSetCell, onOpenItem }: Props) {
+  const SIDE = useSideWidth()
   const [zoom, setZoom] = useState<Zoom>('week')
   const scroller = useRef<HTMLDivElement | null>(null)
   const centred = useRef(false)
@@ -214,10 +240,10 @@ export default function TimelineView({ board, items, readOnly, onSetCell, onOpen
 
       <div className="tl-scroll" ref={scroller}>
         <div className="tl-inner" style={{ width: SIDE + width }}>
-          <Header from={from} days={days} perDay={perDay} zoom={zoom} />
+          <Header from={from} days={days} perDay={perDay} zoom={zoom} side={SIDE} />
 
           <div className="tl-body">
-            <Grid from={from} days={days} perDay={perDay} zoom={zoom} />
+            <Grid from={from} days={days} perDay={perDay} zoom={zoom} side={SIDE} />
             {todayX >= 0 && todayX <= width && (
               <div className="tl-today" style={{ left: SIDE + todayX }} title="Today" />
             )}
@@ -237,6 +263,7 @@ export default function TimelineView({ board, items, readOnly, onSetCell, onOpen
                     from={from}
                     perDay={perDay}
                     width={width}
+                    side={SIDE}
                     readOnly={readOnly || (bar.kind === 'range' && !timelineColumn)}
                     onOpen={() => onOpenItem(bar.item.id)}
                     onMove={(start, end) => {
@@ -280,7 +307,7 @@ export default function TimelineView({ board, items, readOnly, onSetCell, onOpen
 
 // ------------------------------------------------------------------ axis
 
-function Header({ from, days, perDay, zoom }: { from: number; days: number; perDay: number; zoom: Zoom }) {
+function Header({ from, days, perDay, zoom, side }: { from: number; days: number; perDay: number; zoom: Zoom; side: number }) {
   const months: { label: string; left: number; width: number }[] = []
   const ticks: { label: string; left: number; weekend: boolean; first: boolean }[] = []
 
@@ -312,7 +339,7 @@ function Header({ from, days, perDay, zoom }: { from: number; days: number; perD
 
   return (
     <div className="tl-head">
-      <div className="tl-head-side" style={{ width: SIDE }}>
+      <div className="tl-head-side" style={{ width: side }}>
         <span>Item</span>
       </div>
       <div className="tl-head-axis">
@@ -340,7 +367,7 @@ function Header({ from, days, perDay, zoom }: { from: number; days: number; perD
 }
 
 /** Weekend shading and month rules, drawn once behind every row. */
-function Grid({ from, days, perDay, zoom }: { from: number; days: number; perDay: number; zoom: Zoom }) {
+function Grid({ from, days, perDay, zoom, side }: { from: number; days: number; perDay: number; zoom: Zoom; side: number }) {
   const marks = useMemo(() => {
     const out: { left: number; width: number; kind: 'weekend' | 'month' }[] = []
     for (let i = 0; i < days; i++) {
@@ -355,7 +382,7 @@ function Grid({ from, days, perDay, zoom }: { from: number; days: number; perDay
   }, [from, days, perDay, zoom])
 
   return (
-    <div className="tl-grid" style={{ left: SIDE }}>
+    <div className="tl-grid" style={{ left: side }}>
       {marks.map((m, i) => (
         <span
           key={i}
@@ -370,7 +397,7 @@ function Grid({ from, days, perDay, zoom }: { from: number; days: number; perDay
 // ------------------------------------------------------------------- row
 
 function Row({
-  bar, from, perDay, width, readOnly, onOpen, onMove,
+  bar, from, perDay, width, readOnly, onOpen, onMove, side,
 }: {
   bar: Bar
   from: number
@@ -379,6 +406,7 @@ function Row({
   readOnly: boolean
   onOpen: () => void
   onMove: (start: number, end: number) => void
+  side: number
 }) {
   // While dragging we paint from local state; on release we hand the new
   // dates up and let the board's optimistic update take over.
@@ -461,7 +489,7 @@ function Row({
 
   return (
     <div className="tl-row" style={{ height: ROW }}>
-      <div className="tl-row-side" style={{ width: SIDE }}>
+      <div className="tl-row-side" style={{ width: side }}>
         <button className="tl-row-title" onClick={onOpen} title={bar.item.title}>
           {bar.item.title}
         </button>

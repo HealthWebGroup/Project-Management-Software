@@ -1,26 +1,209 @@
 /* =====================================================================
    Phones
    ---------------------------------------------------------------------
-   Not "does not break" — usable. Three things were actually wrong at
-   390px: the board table was clipped mid-word with no way to scroll to
-   the rest, the navigation wrapped "Team & time" over three lines and
-   pushed "People" off the edge, and every tap target was 25-28px when a
-   finger needs about 44.
+   Rewritten, because the previous version solved the wrong problem.
 
-   The board is the interesting one. A table with six columns cannot be
-   made to fit a phone; squeezing it produces columns too narrow to read
-   and a horizontal scrollbar nobody finds. So below 700px it stops being
-   a table: each row becomes a card, each cell a labelled line. Same
-   markup, same data, same editing — the cells carry their column name in
-   `data-label`, and the layout reads it back.
+   It made everything *fit* — no sideways scroll, nothing clipped, tap
+   targets the size of a finger — and the result was still bad to use,
+   for a reason that does not show up in any of those measurements: the
+   layout reflowed to one column but kept the scale of a 1440px desktop.
+   One task on the board filled the whole screen. Five headline numbers
+   filled the whole screen. A client card was three facts in 320 pixels.
+   Everything was legible and almost nothing was visible, so every
+   question needed a page of scrolling to answer.
+
+   Meanwhile the genuinely small things stayed small: 8px client marks,
+   9px section labels, 23px priority chips. Too big and too small at the
+   same time, which is the worst of both.
+
+   So this layer does two things the old one did not:
+
+     1. **Re-scales.** Phone-sized padding and headings, and a floor
+        under the small text — nothing below 10.5px, body copy at 15px
+        so iOS does not zoom the page when a field takes focus.
+
+     2. **Shows more per screen.** A board row is a compact card of
+        chips rather than a stack of labelled lines. The board's own
+        chrome — three tab rows, a search field and a tool strip — used
+        to eat 480 of 844 pixels before a single task appeared; it now
+        takes about 230. A client card is a header, one line of numbers
+        and its actions.
+
+   Measured on a 390x844 phone, before and after: a task card went from
+   about 700px tall to 226, the board's own header from 480px to 287, and
+   the number of tasks you can see at once from one to three. The kanban
+   lane went from a column and a half to one that snaps; the timeline's
+   name column from 260px of a 390px screen to 116, which is the
+   difference between seeing the plan and seeing only the names.
    ===================================================================== */
 
+/* ------------------------------------------------------------------ *
+   1. Scale
+ * ------------------------------------------------------------------ */
+
 @media (max-width: 700px) {
+  :root {
+    /* Phone-sized page furniture. The desktop values assume a mouse and
+       a lot of width; here they are just distance to scroll past. */
+    --pad-page: 12px;
+    --gap-group: 12px;
+  }
 
-  /* ---- the board, as cards ---------------------------------------- */
+  /* A floor under small text. Nine pixels is a design detail on a
+     monitor at arm's length and an unreadable smudge in a hand. */
+  .nav-head,
+  .client-mark,
+  .client-count,
+  .project-count,
+  .su-role,
+  .client-code,
+  .cc-code,
+  .caret,
+  .sens,
+  .avatar,
+  .k,
+  .kt-label,
+  .cc-status,
+  .cc-team-label,
+  .eyebrow { font-size: 10.5px !important; letter-spacing: 0.05em; }
 
+  /* iOS zooms the whole page when a field smaller than 16px takes
+     focus, and never zooms back out. Everything typed into is 16px. */
+  input, textarea, select { font-size: 16px; }
+
+  h1 { font-size: 21px; letter-spacing: -0.01em; }
+  h2 { font-size: 16px; }
+  .page { padding: 12px 12px 28px; }
+  .page-head { flex-wrap: wrap; gap: 8px; }
+  .page-head p, .page-sub { font-size: 13px; }
+
+  /* The home indicator sits over the last 34px of the screen, so the
+     scrolling surfaces end above it. The dialog is deliberately NOT in
+     this list: its actions bar is sticky and carries its own inset, and
+     adding it here only leaves a strip of dead white below the buttons. */
+  .page, .board-scroll, .sidebar {
+    padding-bottom: calc(24px + env(safe-area-inset-bottom, 0px));
+  }
+}
+
+/* ------------------------------------------------------------------ *
+   2. Top bar and drawer
+ * ------------------------------------------------------------------ */
+
+@media (max-width: 700px) {
+  /* The text nav wrapped over three lines and still lost its last item.
+     The drawer lists everything; the bar keeps what a thumb needs. */
+  .topnav, .keyhint { display: none; }
+
+  .topbar {
+    gap: 6px;
+    padding: 8px 10px 8px 56px;
+    flex-wrap: nowrap;
+    min-height: 56px;
+  }
+
+  .menu-btn {
+    top: 7px;
+    left: 8px;
+    width: 42px;
+    height: 42px;
+    padding: 0;
+    justify-content: center;
+    border-radius: var(--radius);
+    gap: 0;
+  }
+  .menu-btn .menu-btn-label { display: none; }
+
+  /* The switcher is the one control that has to stay readable, because
+     it is also the label saying which client you are looking at. */
+  .client-btn { max-width: none; flex: 1 1 auto; min-width: 0; height: 42px; }
+  .client-name-btn,
+  .client-btn span:not(.client-code) {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .bell, .tasks-btn { min-width: 42px; min-height: 42px; flex: none; }
+  /* "My tasks" competes with the client's name for a 390px line, so it
+     tightens rather than disappears. It is deliberately NOT swapped for
+     a hamburger glyph: the drawer button two controls away is already
+     that glyph, and two identical icons that do different things is
+     worse than a slightly cramped bar. */
+  .tasks-btn { padding: 0 10px; font-size: 12.5px; white-space: nowrap; }
+
+  .sidebar { width: min(86vw, 320px); }
+
+  /* The pages, at the top of the drawer where a thumb reaches first.
+     Hidden above 700px — see the note in Shell.tsx. */
+  .drawer-pages {
+    display: grid;
+    gap: 2px;
+    padding: 8px 10px 10px;
+    border-bottom: 1px solid var(--line);
+  }
+  .drawer-pages .dp {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-height: 44px;
+    padding: 0 10px;
+    border-radius: var(--radius);
+    color: var(--ink-soft);
+    font-size: 14.5px;
+    font-weight: 500;
+    text-decoration: none;
+  }
+  .drawer-pages .dp.on {
+    background: var(--accent-soft);
+    color: var(--accent-ink);
+    font-weight: 650;
+  }
+
+  /* The drawer's own brand row sits under the floating menu button. */
+  .sidebar-brand { padding-left: 56px; min-height: 52px; }
+  .client-link, .project-link { min-height: 44px; }
+  .client-twist { width: 36px; height: 44px; }
+}
+
+/* ------------------------------------------------------------------ *
+   3. The board's own chrome
+ * ------------------------------------------------------------------ */
+
+@media (max-width: 700px) {
+  /* This was 480px of header above the first task. Everything below is
+     about getting that under 240 without removing a single control. */
+  .board-head { padding: 8px 12px 8px; gap: 6px; }
+  .board-title-row { flex-wrap: wrap; gap: 6px; align-items: center; }
+  .board-head h1 { font-size: 17px; }
+  .board-desc { display: none; }
+
+  .board-views { width: 100%; }
+  .board-views button { flex: 1; padding: 8px 6px; font-size: 13px; min-height: 40px; }
+
+  /* Search and the tools share one line instead of three. */
+  .board-tools { gap: 6px; row-gap: 6px; align-items: center; }
+  .board-tools .search { flex: 1 1 60%; min-width: 0; min-height: 40px; }
+  .board-tools .toggle { order: 3; }
+  .item-count { order: 4; font-size: 11px; }
+
+  .board-scroll { padding: 10px 12px 40px; }
+
+  /* Instructions for a mouse and a keyboard, on a device with
+     neither. The quick-add hint says "Enter" beside a field whose
+     keyboard has a blue Go key. */
+  .kt-hint, .tl-legend, .qa-hint, .keyhint { display: none; }
+  .kanban-tools { gap: 8px; padding-bottom: 8px; flex-wrap: wrap; }
+  .kanban-tools .segmented button { min-height: 38px; padding: 6px 12px; }
+}
+
+/* ------------------------------------------------------------------ *
+   4. The board table, as compact cards
+ * ------------------------------------------------------------------ */
+
+@media (max-width: 700px) {
   .grid-scroll { overflow-x: visible; border: none; background: transparent; box-shadow: none; }
-  .grid, .grid tbody, .grid tr, .grid td { display: block; width: auto; }
+  .grid, .grid tbody, .grid tr, .grid td { display: block; width: auto; height: auto; }
 
   /* The header row has nowhere to go once cells are stacked; each cell
      carries its own label instead. Kept in the accessibility tree. */
@@ -34,170 +217,348 @@
     border: 0;
   }
 
+  /* One task is one card, and the cells flow across it rather than
+     stacking one per line. Six cells at 40px each was 240px of card for
+     four short words of content. */
   .grid tbody tr {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: stretch;
     background: var(--surface);
     border: 1px solid var(--line);
     border-radius: var(--radius);
     box-shadow: var(--e1);
     margin-bottom: 8px;
-    padding: 4px 2px 6px;
+    padding: 0 0 4px;
     overflow: hidden;
   }
-  /* Zebra striping is meaningless once rows are separate cards. */
   .grid tbody tr:nth-child(even) { background: var(--surface); }
 
+  /* Each cell is a small labelled block, two or three to a row. The
+     label sits above the value: it costs 12px of height and removes
+     every question about which date is which. */
   .grid td {
-    border-bottom: 1px solid var(--line-soft);
-    padding: 7px 12px;
+    flex: 1 1 42%;
+    min-width: 0;
+    border: none;
+    border-top: 1px solid var(--line-soft);
+    padding: 3px 10px 5px;
+    /* The density scale pins every cell to a fixed `height` so desktop
+       rows stay on a grid. Here a cell holds a label AND a value, needs
+       about forty pixels, and `height` beats `min-height` — leave it set
+       and the chips render on top of the row above. This one line is the
+       difference between a card and a pile. */
     height: auto;
-    min-height: 40px;
+    min-height: 34px;
     display: flex;
-    align-items: center;
-    gap: 12px;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: center;
+    gap: 2px;
   }
-  .grid tbody tr td:last-child { border-bottom: none; }
 
-  /* The label, drawn from the column name the cell was given. */
   .grid td[data-label]::before {
     content: attr(data-label);
-    flex: none;
-    width: 86px;
+    width: auto;
     font-family: 'JetBrains Mono', ui-monospace, monospace;
-    font-size: 9.5px;
+    font-size: 10px;
+    line-height: 1;
     letter-spacing: 0.06em;
     text-transform: uppercase;
-    color: var(--muted);
+    color: var(--faint);
   }
-  .grid td[data-label] > * { flex: 1; min-width: 0; }
+  .grid td[data-label] > * { width: 100%; min-width: 0; }
 
-  /* The title is the card's heading, so it gets no label and more weight. */
+  /* Status and timeline are wide by nature; a shared line squeezes them
+     to the point of truncation. */
+  .grid td.col-status,
+  .grid td[data-label='Status'] { flex-basis: 100%; }
+  /* Both date cells fit side by side at 390px, and putting them there
+     saves a row that said almost nothing. */
+  .grid td[data-label='Due date'],
+  .grid td[data-label='Timeline'] { flex-basis: 48%; }
+
+  /* The card's first line is its heading band: the title, and the row's
+     own actions beside it. Ordering is explicit because the actions cell
+     is last in the markup — without it, "delete this task" would sit
+     alone at the bottom of every card and cost a whole row. */
+  .grid tbody tr > td { order: 3; }
   .grid td.col-item {
-    display: flex;
-    padding: 10px 12px;
+    order: 1;
+    flex: 1 1 58%;
+    flex-direction: row;
+    align-items: center;
+    gap: 4px 8px;
+    padding: 6px 4px 6px 10px;
     background: var(--surface-2);
+    border-top: none;
     border-bottom: 1px solid var(--line);
   }
   .grid td.col-item::before { display: none; }
-  .item-title { font-size: 15px; line-height: 1.35; }
+  .grid td.col-item > .item-cell { flex: 1 1 auto; min-width: 0; }
+  /* The title is an <input>: it cannot wrap, so it needs the room, but
+     it no longer needs the whole line to itself. */
+  .item-cell { flex-wrap: nowrap; gap: 6px; }
+  .item-title { flex: 1 1 auto; min-width: 0; min-height: 36px; font-size: 15px; line-height: 1.3; }
 
-  .grid td.col-actions { justify-content: flex-end; border-bottom: none; padding-top: 4px; }
-  .grid td.col-actions::before { display: none; }
-  /* Row actions are hover-only on a desktop; there is no hover here. */
-  .grid tbody tr .open-item,
-  .grid tbody tr .row-delete { opacity: .8; }
-
-  .col-item, .grid td, .grid th { width: auto !important; min-width: 0 !important; }
-
-  /* ---- navigation -------------------------------------------------- */
-
-  /* The text nav wrapped over three lines and still lost its last item.
-     The drawer already lists everything; the top bar keeps only what a
-     thumb needs at the top of the screen. */
-  .topnav { display: none; }
-  .keyhint { display: none; }
-
-  .topbar {
-    gap: 8px;
-    padding: 8px 12px;
-    flex-wrap: nowrap;
-  }
-  .client-btn { max-width: 42vw; }
-  .client-name-btn, .client-btn span:not(.client-code) {
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-
-  /* ---- the board header -------------------------------------------- */
-
-  .board-head { padding: 10px 12px 9px; gap: 8px; }
-  .board-title-row { flex-wrap: wrap; gap: 8px; }
-  .board-head h1 { font-size: 17px; }
-  .board-views { width: 100%; }
-  .board-views button { flex: 1; padding: 9px 8px; }
-  .board-tools { gap: 6px; }
-  .board-tools .search { min-width: 0; flex: 1 1 100%; }
-  .board-scroll { padding: 12px; }
-
-  /* ---- touch targets ----------------------------------------------- */
-
-  .client-link, .project-link { min-height: 42px; }
-  .client-twist { width: 34px; height: 42px; }
-  .btn, .btn.small { min-height: 40px; }
-  .status-cell, .people-cell, .dropdown-cell, .timeline-cell { min-height: 40px; }
-  .date-cell input { height: 40px; }
-  .quick-add { height: 44px; }
-  .topnav a, .menu-btn { min-height: 42px; }
-
-  /* ---- pages -------------------------------------------------------- */
-
-  .page { padding: 12px; }
-  .kpi-row { grid-template-columns: repeat(2, 1fr); gap: 8px; }
-  .kpi-row > :last-child:nth-child(odd) { grid-column: 1 / -1; }
-  .client-grid-2 { grid-template-columns: 1fr; }
-  .page-head { flex-wrap: wrap; gap: 10px; }
-  h1 { font-size: 22px; }
-
-  /* A dialog on a phone is a sheet: full width, anchored to the bottom,
-     where a thumb can reach it. */
-  .dialog {
-    max-width: 100%;
-    width: 100%;
-    margin: 0;
-    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
-    max-height: 88vh;
-  }
-  .dialog-scrim { align-items: flex-end; padding: 0; }
-
-  .cmdk-scrim { padding: 8vh 12px 12px; }
-}
-
-/* Below 430px the cell labels eat too much of the line. */
-@media (max-width: 430px) {
-  .grid td[data-label]::before { width: 70px; font-size: 9px; }
-  .kpi-row { grid-template-columns: 1fr 1fr; }
-}
-
-/* --------------------------------------------- phone fixes, second pass */
-
-@media (max-width: 700px) {
-  /* The floating menu button sat on top of the client switcher. On a phone
-     it loses its label and becomes a square the width of a thumb, and the
-     bar reserves exactly that much room rather than guessing. */
-  .menu-btn {
-    top: 8px;
-    left: 8px;
-    width: 42px;
-    height: 42px;
-    padding: 0;
-    justify-content: center;
-    border-radius: var(--radius);
-    gap: 0;
-  }
-  .menu-btn .menu-btn-label { display: none; }
-  .topbar { padding-left: 58px; }
-  .board-head { padding: 10px 12px 9px; }
-  .board-scroll { padding: 12px 12px 40px; }
-
-  /* The item title is an <input>: it cannot wrap, so it has to be given
-     the whole width or it clips mid-word — which is how a domain name
-     ended up as "healthwebgroup.com renewa". */
-  .grid td.col-item { flex-wrap: wrap; gap: 4px 8px; }
-  .grid td.col-item > .item-cell { flex: 1 1 100%; min-width: 0; }
-  .item-cell { flex-wrap: wrap; }
-  .item-title { flex: 1 1 100%; min-width: 0; min-height: 40px; }
   .open-item {
     flex: none;
     min-height: 34px;
-    padding: 6px 10px;
+    padding: 4px 9px;
     font-size: 11px;
     opacity: 1;
     border: 1px solid var(--line);
     border-radius: var(--radius-sm);
   }
 
-  /* Everything a finger has to hit. 21px was the row timer and the delete
-     cross; both sit next to each other, which is the worst combination. */
+  .grid td.col-actions {
+    order: 2;
+    flex: 0 0 auto;
+    flex-direction: row;
+    align-items: center;
+    justify-content: flex-end;
+    background: var(--surface-2);
+    border-top: none;
+    border-bottom: 1px solid var(--line);
+    padding: 6px 8px 6px 2px;
+  }
+  .grid td.col-actions::before { display: none; }
+  .grid tbody tr .open-item, .grid tbody tr .row-delete { opacity: .9; }
+
+  .col-item, .grid td, .grid th { width: auto !important; min-width: 0 !important; }
+
+  /* The note belongs to the card above it, so it is joined to it rather
+     than floating as a second card. */
+  .grid tbody tr.row-note {
+    margin-top: -9px;
+    border-top-left-radius: 0;
+    border-top-right-radius: 0;
+    box-shadow: none;
+    padding: 0;
+  }
+  /* "+ Add a note" is on every task that has not got one, so on a phone
+     it is the single most repeated thing on the screen. A note that
+     exists keeps its full size; the invitation to write one shrinks. */
+  .note.note-row.empty { min-height: 32px; padding: 5px 10px; font-size: 12px; }
+}
+
+@media (max-width: 380px) {
+  /* On the narrowest phones still in use the date pair no longer fits
+     without truncating a month name. Everything else stays paired. */
+  .grid td[data-label='Due date'],
+  .grid td[data-label='Timeline'] { flex-basis: 100%; }
+}
+
+/* ------------------------------------------------------------------ *
+   5. Kanban: one lane per screen
+ * ------------------------------------------------------------------ */
+
+@media (max-width: 700px) {
+  /* Lanes at a fixed desktop width left the second one cut down the
+     middle of its own words — which reads as broken rather than as
+     "there is more this way". A lane now takes the screen less a
+     deliberate peek, and the scroll snaps, so swiping moves exactly one
+     column and always lands square. */
+  .lanes {
+    gap: 10px;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 8px;
+  }
+  .lane {
+    scroll-snap-align: center;
+    flex: 0 0 86vw;
+    width: 86vw;
+    min-width: 0;
+    max-width: 86vw;
+  }
+  .lane-head { padding: 2px 4px 8px; position: sticky; top: 0; }
+  .lane-body { gap: 8px; }
+
+  /* The card was showing every field it had. On a phone the point of a
+     kanban card is: what is it, whose is it, when is it due. */
+  .kcard { padding: 10px; }
+  .kcard .card-title { font-size: 14.5px; line-height: 1.3; }
+  .card-foot { gap: 6px; flex-wrap: wrap; }
+  .card-foot > * { min-height: 34px; }
+  .card-edit { opacity: 1; }
+}
+
+/* ------------------------------------------------------------------ *
+   6. Timeline
+ * ------------------------------------------------------------------ */
+
+@media (max-width: 700px) {
+  /* The name column is narrowed in the component itself (SIDE_PHONE),
+     because those widths are inline styles on absolutely positioned
+     rows and cannot be reached from here. This is the rest of it. */
+  .tl-toolbar { flex-wrap: wrap; gap: 8px; }
+  .tl-zoom button { min-height: 38px; }
+  .tl-row-title { font-size: 12.5px; }
+  .tl-row-owners { display: none; }
+  .tl-head-side span { font-size: 10.5px; }
+  .tl-undated-list { gap: 6px; }
+  .tl-undated-item { min-height: 40px; }
+}
+
+/* ------------------------------------------------------------------ *
+   7. Dashboard
+ * ------------------------------------------------------------------ */
+
+@media (max-width: 700px) {
+  /* Five headline tiles at desktop height filled the first screen and
+     pushed the actual work below the fold. Two to a row, shorter. */
+  .kpi-row { grid-template-columns: repeat(2, 1fr); gap: 8px; }
+  .kpi-row > :last-child:nth-child(odd) { grid-column: 1 / -1; }
+  .kpi { padding: 10px 12px; }
+  .kpi .kpi-value, .kpi strong { font-size: 24px; line-height: 1.1; }
+  .kpi .kpi-label, .kpi .k { font-size: 10.5px; }
+  .kpi small { font-size: 11.5px; }
+
+  .client-grid-2 { grid-template-columns: 1fr; }
+  .dash-block { padding: 12px; }
+  .dash-head { flex-wrap: wrap; gap: 4px; }
+  .dash-sub { font-size: 11.5px; }
+
+  /* "At risk" is a six-column table inside a sideways scroller, which on
+     a phone means the two columns that matter — who owns it and how late
+     it is — are the two you cannot see. Each row becomes a block. */
+  .dash-block .scroller { overflow-x: visible; }
+  /* The 560px min-width is what forces the sideways scroller on a
+     desktop; stacked, it is the one thing keeping the rows off-screen. */
+  table.data, table.data tbody, table.data tr, table.data td { display: block; width: auto; min-width: 0; }
+  table.data thead {
+    position: absolute; width: 1px; height: 1px;
+    margin: -1px; padding: 0; overflow: hidden;
+    clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+  }
+  table.data tbody tr {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px 8px;
+    padding: 9px 10px;
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    margin-bottom: 7px;
+    background: var(--surface);
+  }
+  table.data tbody tr.late { border-left: 3px solid var(--c-red); }
+  table.data td { padding: 0; border: none; }
+  /* Title takes the line; the rest become a strip of context beneath. */
+  table.data td:first-child { flex: 1 1 100%; }
+  table.data td:first-child .risk-link { font-size: 14.5px; font-weight: 600; min-height: 40px; display: flex; align-items: center; }
+  table.data td:not(:first-child) { font-size: 11.5px; color: var(--muted); }
+  /* Board and client repeat what the row above already says on a phone. */
+  table.data td:nth-child(2) { display: none; }
+}
+
+/* ------------------------------------------------------------------ *
+   8. Clients
+ * ------------------------------------------------------------------ */
+
+@media (max-width: 700px) {
+  .client-card { padding: 12px; }
+  .cc-head { gap: 10px; align-items: center; }
+  .cc-title h2, .cc-title .cc-name { font-size: 16px; }
+  .cc-open { min-height: 38px; display: inline-flex; align-items: center; }
+
+  /* A definition list with a label column is a desktop shape. Stacked,
+     it is two lines per fact; inline, it is one. */
+  .cc-details { gap: 2px 10px; }
+  .cc-details dt { font-size: 10.5px; }
+  .cc-details dd { font-size: 13px; margin: 0; }
+  .cc-notes { font-size: 13px; padding: 8px 10px; }
+
+  /* Three side-by-side buttons wrapped their own labels against the
+     card edge. Full-width rows read better and are easier to hit. */
+  .cc-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; width: 100%; }
+  .cc-actions .btn { width: 100%; min-height: 42px; }
+  .cc-actions .btn:first-child { grid-column: 1 / -1; }
+  .cc-foot { flex-wrap: wrap; gap: 8px; }
+  .cc-foot .btn { width: 100%; min-height: 42px; }
+}
+
+/* ------------------------------------------------------------------ *
+   9. Dialogs, panels and menus
+ * ------------------------------------------------------------------ */
+
+@media (max-width: 700px) {
+  /* A dialog on a phone is a sheet: full width, anchored to the bottom
+     where a thumb can reach it, and never taller than the screen. */
+  .dialog {
+    position: fixed;
+    inset: auto 0 0 0;
+    top: auto;
+    left: 0;
+    transform: none;
+    max-width: 100%;
+    width: 100%;
+    margin: 0;
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+    max-height: 92vh;
+  }
+  .dialog-scrim { align-items: flex-end; padding: 0; }
+  .dialog-body { padding: 14px 14px 18px; }
+
+  /* The actions must stay reachable however long the body gets. */
+  .dialog-actions {
+    position: sticky;
+    bottom: 0;
+    margin: 10px -14px calc(-18px + env(safe-area-inset-bottom, 0px));
+    padding: 10px 14px calc(10px + env(safe-area-inset-bottom, 0px));
+    background: var(--surface);
+    border-top: 1px solid var(--line);
+  }
+  .dialog-actions .btn { flex: 1; min-height: 44px; }
+
+  /* The task panel is a side drawer on a desktop; there is no side. */
+  .panel { width: 100%; max-width: 100%; border-left: none; }
+
+  /* The drawer button is fixed to the top-left corner, so a full-screen
+     panel opened underneath it had its title read "…ity Contribution".
+     While a panel is up there is nothing to open a drawer onto, so the
+     button gets out of the way entirely. */
+  body:has(.panel) .menu-btn { display: none; }
+  .panel-head { padding-right: 8px; }
+
+  /* A popover anchored to a chip can be wider than the phone. Let it
+     take the width it needs and stay on screen. */
+  .pop { max-width: calc(100vw - 20px); }
+
+  .cmdk-scrim { padding: 6vh 10px 10px; }
+  .cmdk-row { min-height: 44px; }
+
+  .vis-why { display: none; }
+  .vis-name small { white-space: normal; }
+}
+
+/* ------------------------------------------------------------------ *
+   10. Everything a finger has to hit
+ * ------------------------------------------------------------------ */
+
+@media (max-width: 700px) {
+  .btn, .btn.small { min-height: 40px; }
+  .status-cell, .people-cell, .dropdown-cell, .timeline-cell { min-height: 34px; }
+  .date-cell input { height: 38px; }
+  .quick-add, .qa-input { min-height: 44px; }
+  .search { min-height: 40px; }
+  .toggle { min-height: 38px; }
+
+  /* The density switch is a desktop control: this whole stylesheet is
+     already choosing the density for a phone, so the button would be
+     offering to undo it. Hidden, and the board's tool row gets its
+     width back. */
+  .density-toggle { display: none; }
+
+  /* Checkboxes are small by default in every browser and nothing
+     resizes them for you; these are the hardest things on a phone to
+     hit accurately. */
+  /* Priority and the note prompt were 23px and 19px — both are primary
+     actions on the board and both were the size of a full stop. */
+  .prio, .prio-pill { min-height: 34px; padding: 5px 12px; }
+  .note.empty, .note-add, .note-history { min-height: 34px; padding: 6px 10px; }
+
   .row-actions { gap: 6px; }
   .row-timer, .row-delete {
     min-width: 38px;
@@ -208,20 +569,57 @@
     border-radius: var(--radius-sm);
     font-size: 14px;
   }
-  .qa-input { min-height: 40px; }
-  .density-toggle { min-height: 38px; padding: 6px 11px; }
-  .toggle { min-height: 38px; }
-  .toggle input[type='checkbox'] { width: 20px; height: 20px; }
-  .grid td input[type='checkbox'] { width: 22px; height: 22px; }
-  .search { min-height: 40px; }
+
+  /* Links that are the whole point of their row need a row's worth of
+     height, not the height of their own text. */
+  .risk-link, .cc-open, .tl-undated-item { min-height: 40px; }
+
+  /* The segmented controls in Settings are choices, not decoration. */
+  .segmented button, .seg button { min-height: 40px; padding: 8px 12px; }
+
+  /* A 22px checkbox is what the browser gives you and it is too small to
+     hit reliably. The box stays visually reasonable; the label around it
+     carries the rest of the target. */
+  input[type='checkbox'] { width: 28px; height: 28px; }
+  label:has(> input[type='checkbox']) { min-height: 44px; display: flex; align-items: center; gap: 8px; }
 }
 
-@media (max-width: 700px) {
-  /* The last few. Checkboxes below 24px are the hardest thing on a phone
-     to hit accurately — they are small by default in every browser and
-     nothing resizes them for you. */
-  .bell, .tasks-btn { min-width: 40px; min-height: 40px; }
-  .open-item { min-height: 38px; }
-  input[type='checkbox'] { width: 22px; height: 22px; }
-  .toggle input[type='checkbox'] { width: 22px; height: 22px; }
+/* Landscape on a phone.
+   ---------------------------------------------------------------------
+   This one is keyed on HEIGHT, not width, and that matters: a phone
+   turned sideways is 740x360, which is wider than the 700px breakpoint
+   above — so none of the phone rules apply and the layout is the desktop
+   one on a screen 360 pixels tall. That is where a dialog's Save button
+   ends up below the fold with no page scroll to reach it, which is the
+   bug this block exists for. It therefore has to stand on its own rather
+   than adjust the rules above. */
+@media (max-height: 540px) and (orientation: landscape) {
+  .dialog {
+    max-height: 94vh;
+    border-radius: var(--radius-lg);
+    display: flex;
+    flex-direction: column;
+  }
+  .dialog-scrim { align-items: center; padding: 3vh 8px; }
+  .dialog-body { overflow-y: auto; min-height: 0; }
+
+  /* The actions are the reason for the dialog; they do not scroll away. */
+  .dialog-actions {
+    position: sticky;
+    bottom: 0;
+    margin-top: 8px;
+    padding: 8px 0 2px;
+    background: var(--surface);
+    border-top: 1px solid var(--line);
+  }
+
+  /* Lists that were sized as a share of a tall screen. */
+  .dialog .people-list, .dialog .people-list:has(~ .vis) { max-height: 34vh; }
+  .dialog .vis { max-height: 40vh; }
+
+  /* Two lanes fit side by side on a sideways phone. */
+  .lane { flex-basis: 46vw; width: 46vw; max-width: 46vw; }
+
+  /* The panel has the same problem for the same reason. */
+  .panel { width: min(520px, 92vw); }
 }
